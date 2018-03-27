@@ -8,7 +8,7 @@ import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
 import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
 import pt.ulisboa.tecnico.hdscoin.interfaces.*;
 
-public class Main {
+public class ClientApplication {
 
     public static void main(String[] args) {
 

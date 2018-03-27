@@ -6,12 +6,12 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
-public class Main {
+public class ServerApplication {
 
 	public static void main(String args[]) {
         try {
             System.setProperty("java.rmi.server.hostname","127.0.0.1");
-            ServerInterface obj = new ServerInterface();
+            Server obj = new Server();
             Registry registry = LocateRegistry.createRegistry(1099);
             RemoteServerInterface stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(obj, 0);
 
