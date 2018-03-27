@@ -1,16 +1,14 @@
 package pt.ulisboa.tecnico.hdscoin.server;
 
 import java.security.PublicKey;
-import java.rmi.registry.Registry;
-import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
-import java.rmi.server.RemoteServer;
+
+import pt.ulisboa.tecnico.hdscoin.client.*;
 
 
-public class Server {
+public class ServerInterface implements RemoteServerInterface {
 
-	 public Server() {}
+	 public ServerInterface() {}
 	    
 	    @Override
 		public String register(PublicKey source) throws RemoteException {
