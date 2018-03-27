@@ -10,16 +10,16 @@ public class Main {
 	public static void main(String args[]) {
 
         try {
-            Server obj = new Server();
+            ServerInterface obj = new ServerInterface();
             RemoteServer stub = (RemoteServer) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
             registry.bind("ServerR", stub);
 
-            System.err.println("Server ready");
+            System.err.println("ServerInterface ready");
         } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
+            System.err.println("ServerInterface exception: " + e.toString());
             e.printStackTrace();
         }
     }

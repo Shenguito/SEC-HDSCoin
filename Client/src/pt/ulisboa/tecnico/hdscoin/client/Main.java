@@ -2,7 +2,6 @@ package pt.ulisboa.tecnico.hdscoin.client;
 
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.RemoteServer;
 
 public class Main {
 
@@ -11,7 +10,7 @@ public class Main {
         String host = (args.length < 1) ? null : args[0];
         try {
             Registry registry = LocateRegistry.getRegistry(host);
-            RemoteServer stub = (RemoteServer) registry.lookup("ServerR");
+            RemoteServerInterface stub = (RemoteServerInterface) registry.lookup("ServerR");
             String response = stub.register(null);
             System.out.println("response: " + response);
         } catch (Exception e) {

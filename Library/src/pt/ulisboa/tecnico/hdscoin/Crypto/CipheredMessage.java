@@ -1,4 +1,4 @@
-package Crypto;
+package pt.ulisboa.tecnico.hdscoin.Crypto;
 
 import java.io.Serializable;
 
