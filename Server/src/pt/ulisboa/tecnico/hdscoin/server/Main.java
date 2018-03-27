@@ -19,7 +19,7 @@ public class Main {
             // Bind the remote object's stub in the registry
             registry.bind("RemoteServerInterface", stub);
 
-            System.err.println("ServerInterface ready");
+            System.out.println("ServerInterface ready");
         } catch (Exception e) {
             System.err.println("ServerInterface exception: " + e.toString());
             e.printStackTrace();

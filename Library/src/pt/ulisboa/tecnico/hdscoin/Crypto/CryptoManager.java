@@ -88,8 +88,7 @@ public class CryptoManager {
         CipheredMessage cipheredMessage = null;
         try {
             //Required params
-            long nonce = new Random().nextLong();
-            long timestamp = System.currentTimeMillis();
+            long nonce = new SecureRandom().nextLong();
             byte[] IV = generateIV();
 
             //AES ciphering of Message
@@ -97,9 +96,9 @@ public class CryptoManager {
             byte[] cipheredContent = cipherContent(message, IV, aesKey);
 
             //Signature generation
-            byte[] concatParams = concatHashParams(message, timestamp, IV);
+            byte[] concatParams = concatHashParams(message, nonce, IV);
             byte[] digitalSig = CryptoUtil.makeDigitalSignature(concatParams, privKey);
-            IntegrityCheck integrityCheck = new IntegrityCheck(digitalSig, nonce, timestamp);
+            IntegrityCheck integrityCheck = new IntegrityCheck(digitalSig, nonce, nonce);
             byte[] integrityCheckBytes = toBytes(integrityCheck);
 
             //AES ciphering of Signature and params
@@ -122,12 +121,11 @@ public class CryptoManager {
      * Deciphers a {@link CipheredMessage} object to obtain the original message, and verifies
      * digital signature to ensure integrity and non-repudiation
      * @param cipheredMessage The received ciphered message
-     * @param senderPubKey Public key of the origin to calculate digital sig
      * @return {@link Message} object that was encapsulated
      */
 
     //TODO: MUDAR ISTO
-    public Message decipherCipheredMessage(CipheredMessage cipheredMessage, String senderPubKey){
+    public Message decipherCipheredMessage(CipheredMessage cipheredMessage){
         Message deciphMsg = null;
         try {
             SecretKey key = (SecretKey) fromBytes(CryptoUtil.asymDecipher(cipheredMessage.getKey(), privKey));
@@ -135,7 +133,7 @@ public class CryptoManager {
             deciphMsg = (Message) fromBytes(decipheredContent);
             byte[] decipheredIntegrityBytes = CryptoUtil.symDecipher(cipheredMessage.getIntegrityCheck(), cipheredMessage.getIV(), key);
             IntegrityCheck check = (IntegrityCheck) fromBytes(decipheredIntegrityBytes);
-            if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), check, peerKeys.get(senderPubKey))) return deciphMsg;
+            if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), check, peerKeys.get(deciphMsg.getSender()))) return deciphMsg;
             else throw new IllegalStateException("Invalid Signature");
         } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
@@ -160,7 +158,7 @@ public class CryptoManager {
      * @throws InvalidAlgorithmParameterException
      */
     private boolean verifyIntegrity(Message msg, byte[] IV, IntegrityCheck check, PublicKey key) throws IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException, InvalidAlgorithmParameterException {
-        byte[] concatParams = concatHashParams(msg, check.getTimestamp(), IV);
+        byte[] concatParams = concatHashParams(msg, check.getNonce(), IV);
         return CryptoUtil.verifyDigitalSignature(check.getDigitalSignature(), concatParams, key);
     }
 

@@ -31,18 +31,25 @@ public class Message implements Serializable{
 
     //Server
     //register && receive && send
-    public Message(boolean confirm){
+    public Message(String sender, boolean confirm){
+        this.sender = sender;
         this.confirm = confirm;
     }
 
     //check && audit
-    public Message(double amount, List<String> transactions){
+    public Message(String sender, double amount, List<String> transactions){
+        this.sender = sender;
         this.amount=amount;
         this.transactions=transactions;
     }
 
+    public double getAmount() {
+        return amount;
+    }
 
-
+    public String getSender() {
+        return sender;
+    }
 
 
 

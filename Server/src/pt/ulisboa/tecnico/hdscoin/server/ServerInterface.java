@@ -22,11 +22,11 @@ public class ServerInterface implements RemoteServerInterface {
 
 		CryptoManager manager = new CryptoManager(SERVER_KEY, "passwd");
 		//decipher
-		Message decipheredMessage = manager.decipherCipheredMessage(msg, source);
+		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
 		System.out.println(msg);
 
-		Message message = new Message(true);
+		Message message = new Message(SERVER_KEY, true);
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, source);
 		return cipheredMessage;
 	}

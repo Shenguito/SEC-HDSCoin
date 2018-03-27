@@ -27,7 +27,7 @@ public class Main {
 
             CipheredMessage response = stub.register(CLIENT_KEY, cipheredMessage);
 
-            Message responseDeciphered = manager.decipherCipheredMessage(response, SERVER_KEY);
+            Message responseDeciphered = manager.decipherCipheredMessage(response);
 
             System.out.println("response: " + responseDeciphered);
         } catch (Exception e) {
