@@ -125,6 +125,8 @@ public class CryptoManager {
      * @param senderPubKey Public key of the origin to calculate digital sig
      * @return {@link Message} object that was encapsulated
      */
+
+    //TODO: MUDAR ISTO
     public Message decipherCipheredMessage(CipheredMessage cipheredMessage, String senderPubKey){
         Message deciphMsg = null;
         try {

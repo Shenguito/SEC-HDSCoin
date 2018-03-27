@@ -12,10 +12,10 @@ public class Crypto {
 
     public static void main(String[] args) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException, InvalidKeyException, IOException {
 
-        // == PC 1 ===
+       /* // == PC 1 ===
 
         //Create a message (Can be changed, as long as it remains serializable)
-        Message msg = new Message("A", "Gonçalo");
+       // Message msg = new Message(2, "Gonçalo");
         //Init first manager for sending
         CryptoManager manager = new CryptoManager(MANAGER_PUB_KEY, "passwd");
         //Cipher the message
@@ -30,7 +30,7 @@ public class Crypto {
 
         System.out.println("Original is " + msg);
         System.out.println("Ciphered result is " + cipheredMessage);
-        System.out.println("Deiphered result is " + decipheredMessage);
+        System.out.println("Deiphered result is " + decipheredMessage);*/
 
 
     }
