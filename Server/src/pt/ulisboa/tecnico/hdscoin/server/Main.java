@@ -9,7 +9,6 @@ import java.rmi.server.UnicastRemoteObject;
 public class Main {
 
 	public static void main(String args[]) {
-
         try {
             System.setProperty("java.rmi.server.hostname","127.0.0.1");
             ServerInterface obj = new ServerInterface();

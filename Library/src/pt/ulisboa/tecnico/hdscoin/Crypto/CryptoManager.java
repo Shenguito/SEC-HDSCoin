@@ -1,7 +1,6 @@
 package pt.ulisboa.tecnico.hdscoin.Crypto;
 
-import sun.plugin.dom.exception.InvalidStateException;
-
+    
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.xml.bind.DatatypeConverter;

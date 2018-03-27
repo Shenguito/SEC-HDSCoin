@@ -18,6 +18,7 @@ public class Main {
         System.out.println("PRINT");
         String host = (args.length < 1) ? null : args[0];
         try {
+
             Registry registry = LocateRegistry.getRegistry(host);
             RemoteServerInterface stub = (RemoteServerInterface) registry.lookup("RemoteServerInterface");
 

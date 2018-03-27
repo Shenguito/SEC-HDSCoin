@@ -1,0 +1,8 @@
+pt\ulisboa\tecnico\hdscoin\Crypto\Message.class
+pt\ulisboa\tecnico\hdscoin\Crypto\CryptoUtil.class
+pt\ulisboa\tecnico\hdscoin\interfaces\RemoteServerInterface.class
+pt\ulisboa\tecnico\hdscoin\Crypto\Crypto.class
+pt\ulisboa\tecnico\hdscoin\Crypto\IntegrityCheck.class
+pt\ulisboa\tecnico\hdscoin\Crypto\CipheredMessage.class
+pt\ulisboa\tecnico\hdscoin\Crypto\CryptoManager.class
+pt\ulisboa\tecnico\hdscoin\Crypto\KeyUtils.class
