@@ -9,11 +9,12 @@ import java.rmi.server.UnicastRemoteObject;
 public class ServerApplication {
 
 	public static void main(String args[]) {
+		
         try {
             System.setProperty("java.rmi.server.hostname","127.0.0.1");
-            Server obj = new Server();
+            Server server = new Server();
             Registry registry = LocateRegistry.createRegistry(1099);
-            RemoteServerInterface stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(obj, 0);
+            RemoteServerInterface stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(server, 0);
 
             // Bind the remote object's stub in the registry
             registry.bind("RemoteServerInterface", stub);

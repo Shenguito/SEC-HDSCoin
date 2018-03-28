@@ -7,9 +7,10 @@ import java.rmi.RemoteException;
 import java.security.PublicKey;
 
 public interface RemoteServerInterface extends Remote{
-	CipheredMessage register(String pubkey, CipheredMessage msg) throws RemoteException;
-    void send(PublicKey source, PublicKey destination, int amount) throws RemoteException;
-    String check(PublicKey source) throws RemoteException;
-    String receive(PublicKey source) throws RemoteException;
-    String audit(PublicKey source) throws RemoteException;
+	CipheredMessage sample(String pubkey, CipheredMessage msg) throws RemoteException;
+	String register(String pubkey) throws RemoteException;
+	CipheredMessage send(CipheredMessage msg) throws RemoteException;
+    CipheredMessage check(CipheredMessage msg) throws RemoteException;
+    CipheredMessage receive(CipheredMessage msg) throws RemoteException;
+    CipheredMessage audit(CipheredMessage msg) throws RemoteException;
 }

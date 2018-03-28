@@ -18,7 +18,7 @@ public class Message implements Serializable{
         this.sender = sender;
         this.transactions = transactions;
     }
-    //check && audit && register
+    //check && audit
     public Message(String sender){
         this.sender = sender;
     }
@@ -30,13 +30,13 @@ public class Message implements Serializable{
     }
 
     //Server
-    //register && receive && send
-    public Message(String sender, boolean confirm){
-        this.sender = sender;
+    //receive && send
+    public Message(boolean confirm){
         this.confirm = confirm;
     }
 
-    //check && audit
+   
+	//check && audit
     public Message(String sender, double amount, List<String> transactions){
         this.sender = sender;
         this.amount=amount;
@@ -51,6 +51,15 @@ public class Message implements Serializable{
         return sender;
     }
 
+    public String getDestination() {
+		return destination;
+	}
+	public List<String> getTransactions() {
+		return transactions;
+	}
+	public boolean isConfirm() {
+		return confirm;
+	}
 
 
     @Override
