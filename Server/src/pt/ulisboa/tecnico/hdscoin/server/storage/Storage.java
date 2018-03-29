@@ -16,9 +16,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
+
 public class Storage {
 	private ObjectMapper objectMapper;
-	private final String Historyfilename="history"+File.separator+"transactions.json";
+	//private final String Historyfilename="history"+File.separator+"transactions.json";
 	public Storage() {
 		objectMapper = new ObjectMapper();
 	}
@@ -71,7 +73,7 @@ public class Storage {
 		return "client"+File.separator+name+".json";
 	}
 	
-	
+	/*
 
 	public void writeTransaction(String sender, String receiver, double amount) {
 		File f = new File(Historyfilename);
@@ -129,5 +131,5 @@ public class Storage {
 		}
 		return senderTransactions;
 	}
-	
+	*/
 }

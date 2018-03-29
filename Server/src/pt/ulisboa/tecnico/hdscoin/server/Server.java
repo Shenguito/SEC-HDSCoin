@@ -23,7 +23,6 @@ public class Server implements RemoteServerInterface{
 
 	public Server() {
 		storage=new Storage();
-		System.out.println(File.separator);
 	}
 	
 	public CipheredMessage sample(String pubkey, CipheredMessage msg) throws RemoteException{
@@ -43,7 +42,7 @@ public class Server implements RemoteServerInterface{
 		pubkey="Jonhy";
 		System.out.println("Recebi:\n"+pubkey);
 		if(!storage.checkFileExists(pubkey)){
-			storage.writeClient(pubkey, new Ledger(100, new ArrayList<String>(), new ArrayList<String>()));
+			storage.writeClient(pubkey, new Ledger(100, new ArrayList<Transaction>(), new ArrayList<Transaction>()));
 		}else {
 			System.out.println("User already registered!");
 			throw new RemoteException();
@@ -66,7 +65,8 @@ public class Server implements RemoteServerInterface{
 			Ledger sender = storage.readClient(decipheredMessage.getSender());
 			if(sender.sendBalance(decipheredMessage.getAmount())) {
 				Ledger destiny = storage.readClient(decipheredMessage.getDestination());
-				destiny.addPendingTransfers("Pending transfer:"+decipheredMessage.getAmount());
+				//Transaction with id for pending
+				destiny.addPendingTransfers(new Transaction(destiny.getPendingTransfers().size()+1,decipheredMessage.getSender(),decipheredMessage.getDestination(),decipheredMessage.getAmount()));
 				storage.writeClient(decipheredMessage.getDestination(), destiny);
 				message = new Message(true);
 			}
@@ -85,7 +85,7 @@ public class Server implements RemoteServerInterface{
 		
 		//TODO AES? Compare client keys?
 		
-		Message message = new Message(SERVER_KEY, 0.0, new ArrayList<String>()); //case the client does not exist
+		Message message = new Message(SERVER_KEY, 0.0, new ArrayList<Transaction>()); //case the client does not exist
 		if(storage.checkFileExists(decipheredMessage.getSender())){
 			Ledger value = storage.readClient(decipheredMessage.getSender());
 			message = new Message(SERVER_KEY, value.getBalance(), value.getPendingTransfers());
@@ -105,15 +105,14 @@ public class Server implements RemoteServerInterface{
 		Message message = new Message(false);
 		if(true) {//TODO pending tranfers transaction
 			Ledger destiny = storage.readClient(decipheredMessage.getDestination());
-			destiny.addTransfers("Transfer:"+decipheredMessage.getAmount());
+			destiny.addTransfers(new Transaction(decipheredMessage.getSender(), decipheredMessage.getDestination(), decipheredMessage.getAmount()));
 			destiny.receiveBalance(decipheredMessage.getAmount());
 			Ledger sender = storage.readClient(decipheredMessage.getSender());
-			sender.addTransfers("Transfer:-"+decipheredMessage.getAmount());
+			sender.addTransfers(new Transaction(decipheredMessage.getSender(), decipheredMessage.getDestination(), decipheredMessage.getAmount()));
 			
 			//Write to file
 			storage.writeClient(decipheredMessage.getSender(), sender);
 			storage.writeClient(decipheredMessage.getDestination(), destiny);
-			storage.writeTransaction(decipheredMessage.getSender(), decipheredMessage.getDestination(), decipheredMessage.getAmount());
 			message = new Message(true);
 		}
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
@@ -129,7 +128,7 @@ public class Server implements RemoteServerInterface{
 		//TODO AES? Compare client keys?
 		
 		Ledger value = storage.readClient(decipheredMessage.getSender());
-		Message message = new Message(SERVER_KEY, value.getBalance(), value.getPendingTransfers());
+		Message message = new Message(SERVER_KEY, value.getBalance(), value.getTransfers());
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
 		return cipheredMessage;
 	}

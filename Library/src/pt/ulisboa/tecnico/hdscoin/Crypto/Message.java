@@ -4,17 +4,19 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
+
 public class Message implements Serializable{
 
     private double amount;
     private String sender;
     private String destination;
-    private List<String> transactions;
+    private List<Transaction> transactions;
     private boolean confirm;
 
     //Client
     //receive
-    public Message(String sender, List<String> transactions) {
+    public Message(String sender, List<Transaction> transactions) {
         this.sender = sender;
         this.transactions = transactions;
     }
@@ -37,7 +39,7 @@ public class Message implements Serializable{
 
    
 	//check && audit
-    public Message(String sender, double amount, List<String> transactions){
+    public Message(String sender, double amount, List<Transaction> transactions){
         this.sender = sender;
         this.amount=amount;
         this.transactions=transactions;
@@ -54,7 +56,7 @@ public class Message implements Serializable{
     public String getDestination() {
 		return destination;
 	}
-	public List<String> getTransactions() {
+	public List<Transaction> getTransactions() {
 		return transactions;
 	}
 	public boolean isConfirm() {
