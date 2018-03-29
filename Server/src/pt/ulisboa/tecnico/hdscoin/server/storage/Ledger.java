@@ -1,15 +1,19 @@
-package pt.ulisboa.tecnico.hdscoin.server;
+package pt.ulisboa.tecnico.hdscoin.server.storage;
 
+import java.io.Serializable;
 import java.util.List;
 
 /* 
  * This class should have synchronization in consideration
 */
 
-public class Ledger {
+public class Ledger implements Serializable{
 	private double balance;
 	private List<String> transfers;
 	private List<String> pendingTransfers;
+	public Ledger() {
+		
+	}
 	public Ledger(double balances, List<String> transfers, List<String> pendingTransfers) {
 		this.balance = balances;
 		this.transfers = transfers;
