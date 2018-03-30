@@ -30,19 +30,28 @@ public class CryptoManager {
      * This node's RSA private key
      */
     private PrivateKey privKey;
+    
+    
+    public CryptoManager(PublicKey publicKey, PrivateKey privateKey){
+        
+    	this.pubKey=publicKey;
+    	this.privKey=privateKey;
+        System.out.println("CRYPTO MANAGER STARTED");
+    }
+    
+    
 
     /**
      * Maps the public key string for each peer to an actual {@link PublicKey} that can be used
      * for encryption and decryption
      */
-    private HashMap<String, PublicKey> peerKeys;
-
-
+    //private HashMap<String, PublicKey> peerKeys;
     /**
      * Initializes CryptoManager by loading it's own keys and populating the peer keys
      * @param publicKey public key for this node
      * @param keysFile file where the keys can be found.
      */
+    /*
     public CryptoManager(String publicKey, String keysFile){
         peerKeys = new HashMap<>();
         try {
@@ -52,7 +61,8 @@ public class CryptoManager {
         }
         System.out.println("CRYPTO MANAGER STARTED");
     }
-
+    */
+    
     /**
      * Loads a set of previously computed RSA keys from a file and assigns the values to the correct variables
      * Private keys of other peers are ignored
@@ -62,6 +72,7 @@ public class CryptoManager {
      * @throws NoSuchAlgorithmException
      * @throws FileNotFoundException
      */
+    /*
     private void loadKeysFromFile(String publicKey, String keysFile) throws InvalidKeySpecException, NoSuchAlgorithmException, FileNotFoundException {
         Scanner scanner = new Scanner(new File(keysFile));
         while (scanner.hasNextLine()){
@@ -76,6 +87,7 @@ public class CryptoManager {
             }
         }
     }
+    */
 
     /**
      * Creates a {@link CipheredMessage} that can be sent through the network
@@ -83,7 +95,7 @@ public class CryptoManager {
      * @param receiverPubKey public key of the destination node
      * @return {@link CipheredMessage} object containing the ciphered Message
      */
-    public CipheredMessage makeCipheredMessage(Message message, String receiverPubKey){
+    public CipheredMessage makeCipheredMessage(Message message, PublicKey receiverPubKey){
         CipheredMessage cipheredMessage = null;
         try {
             //Required params
@@ -105,7 +117,9 @@ public class CryptoManager {
 
             //RSA ciphering of AES key
             byte[] keyBytes = toBytes(aesKey);
-            byte[] cipheredKey = CryptoUtil.asymCipher(keyBytes, peerKeys.get(receiverPubKey));
+            if(receiverPubKey==null)
+            	System.out.println("Receiver key is null");
+            byte[] cipheredKey = CryptoUtil.asymCipher(keyBytes, receiverPubKey);
 
             cipheredMessage = new CipheredMessage(cipheredContent, IV, cipheredIntegrityCheck, cipheredKey);
         } catch (NoSuchAlgorithmException | IOException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
@@ -131,8 +145,8 @@ public class CryptoManager {
             deciphMsg = (Message) fromBytes(decipheredContent);
             byte[] decipheredIntegrityBytes = CryptoUtil.symDecipher(cipheredMessage.getIntegrityCheck(), cipheredMessage.getIV(), key);
             IntegrityCheck check = (IntegrityCheck) fromBytes(decipheredIntegrityBytes);
-            if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), check, peerKeys.get(deciphMsg.getSender()))) return deciphMsg;
-            else throw new IllegalStateException("Invalid Signature");
+            //if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), check, deciphMsg.getSender())) return deciphMsg;
+            //else throw new IllegalStateException("Invalid Signature");
         } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
         }
@@ -248,6 +262,13 @@ public class CryptoManager {
         KeyGenerator keygen = KeyGenerator.getInstance("AES");
         SecretKey skey = keygen.generateKey();
         return skey;
+    }
+    
+    public PublicKey getPublicKey() {
+    	return pubKey;
+    }
+    public PrivateKey getPrivateKey() {
+    	return privKey;
     }
 
 }

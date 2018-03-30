@@ -5,6 +5,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.io.File;
 import java.rmi.RemoteException;
@@ -24,56 +25,55 @@ public class Server implements RemoteServerInterface{
 	private Storage storage;
  	private KeystoreManager keyPairManager;
  	private KeyPair serverKeyPair;
- 	private PublicKey serverPublicKey;
- 	private PrivateKey serverPriveteKey;
+ 	private CryptoManager manager;
  	
- 	private HashMap<String, PublicKey> clients=new HashMap<String, PublicKey>();
+ 	private HashMap<PublicKey, String> clients=new HashMap<PublicKey, String>();
  	
 	public Server() {
 		storage=new Storage();
 		try {
 			keyPairManager=new KeystoreManager("KeyStore"+File.separator+"server.ks", "server123");
 			serverKeyPair=keyPairManager.getKeyPair("server", "server123");
-			serverPublicKey=serverKeyPair.getPublic();
-			serverPriveteKey=serverKeyPair.getPrivate();
+			manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate());
 		}catch(Exception e) {
 			System.out.println("KeyPair Error");
 			e.printStackTrace();
 		}
+		
 	}
 	// TODO jackson can not save byte[] nor public key
-	public String register(String clientName, PublicKey publickey) throws RemoteException {
+	public PublicKey register(String clientName, PublicKey publickey) throws RemoteException {
 		
-		System.out.println("Received client: "+clientName);
+		//System.out.println("Received client: "+clientName);
 		if(!storage.checkFileExists(clientName)){
-			storage.writeClient(clientName, new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>()));
+			storage.writeClient(clientName, new Ledger(100, new ArrayList<Transaction>(), new ArrayList<Transaction>()));
 		}else {
 			System.out.println("User already registered!");
-			throw new RemoteException();
 		}
 		if(clients.containsKey(clientName));
-		clients.put(clientName, publickey);
-		System.out.println("Test reading "+clientName+" file:\n"+storage.readClient(clientName).toString());
+		clients.put(publickey, clientName);
+		//System.out.println("Test reading "+clientName+" file:\n"+storage.readClient(clientName).toString());
 		
-		return SERVER_KEY;
+		return manager.getPublicKey();
 	}
 	
 	//PublicKey source, PublicKey destination, int amount
 	public CipheredMessage send(CipheredMessage msg) throws RemoteException {
-		CryptoManager manager = new CryptoManager(SERVER_KEY, "passwd");
+		
 		//decipher
+		System.out.println("Deciphering message");
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 		
-		//TODO 
 		
 		Message message = new Message(false);//case the client does not exist
-		if(storage.checkFileExists(decipheredMessage.getSender())){
-			Ledger sender = storage.readClient(decipheredMessage.getSender());
+		if(storage.checkFileExists(clients.get(decipheredMessage.getSender()))){
+			Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
 			if(sender.sendBalance(decipheredMessage.getAmount())) {
-				Ledger destiny = storage.readClient(decipheredMessage.getDestination());
+				Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination()));
 				//Transaction with id for pending
-				destiny.addPendingTransfers(new Transaction(destiny.getPendingTransfers().size()+1,decipheredMessage.getSender(),decipheredMessage.getDestination(),decipheredMessage.getAmount()));
-				storage.writeClient(decipheredMessage.getDestination(), destiny);
+				destiny.addPendingTransfers(new Transaction(destiny.getPendingTransfers().size()+1,clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount()));
+				storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
+				storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
 				message = new Message(true);
 			}
 		}
@@ -85,16 +85,15 @@ public class Server implements RemoteServerInterface{
 
 
 	public CipheredMessage check(CipheredMessage msg) throws RemoteException {
-		CryptoManager manager = new CryptoManager(SERVER_KEY, "passwd");
 		//decipher
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 		
 		//TODO AES? Compare client keys?
 		
-		Message message = new Message(SERVER_KEY, 0.0, new ArrayList<Transaction>()); //case the client does not exist
-		if(storage.checkFileExists(decipheredMessage.getSender())){
-			Ledger value = storage.readClient(decipheredMessage.getSender());
-			message = new Message(SERVER_KEY, value.getBalance(), value.getPendingTransfers());
+		Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>()); //case the client does not exist
+		if(storage.checkFileExists(clients.get(decipheredMessage.getSender()))){
+			Ledger value = storage.readClient(clients.get(decipheredMessage.getSender()));
+			message = new Message(manager.getPublicKey(), value.getBalance(), value.getPendingTransfers());
 		}
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
 		return cipheredMessage;
@@ -102,7 +101,6 @@ public class Server implements RemoteServerInterface{
 
 
 	public CipheredMessage receive(CipheredMessage msg) throws RemoteException {
-		CryptoManager manager = new CryptoManager(SERVER_KEY, "passwd");
 		//decipher
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 		
@@ -110,15 +108,28 @@ public class Server implements RemoteServerInterface{
 		
 		Message message = new Message(false);
 		if(true) {//TODO pending tranfers transaction
-			Ledger destiny = storage.readClient(decipheredMessage.getDestination());
-			destiny.addTransfers(new Transaction(decipheredMessage.getSender(), decipheredMessage.getDestination(), decipheredMessage.getAmount()));
-			destiny.receiveBalance(decipheredMessage.getAmount());
-			Ledger sender = storage.readClient(decipheredMessage.getSender());
-			sender.addTransfers(new Transaction(decipheredMessage.getSender(), decipheredMessage.getDestination(), decipheredMessage.getAmount()));
+			//decipheredMessage.getDestination()==null
+			Ledger destiny = storage.readClient(clients.get(decipheredMessage.getSender()));
+			List<Transaction> acceptedTransactions=decipheredMessage.getTransactions();
+			//System.out.println("Ledger: "+destiny.toString());
+			//System.out.println("Sender: "+decipheredMessage.getSender());
 			
-			//Write to file
-			storage.writeClient(decipheredMessage.getSender(), sender);
-			storage.writeClient(decipheredMessage.getDestination(), destiny);
+			Iterator<Transaction> i = destiny.getPendingTransfers().iterator();
+			while (i.hasNext()) {
+				Transaction t=i.next();
+				for(Transaction accepted:decipheredMessage.getTransactions())
+					if(accepted.myEquals(t)) {
+						Ledger sender = storage.readClient(t.getSender());
+						destiny.receiveBalance(t.getAmount());
+						destiny.addTransfers(new Transaction(t.getSender(), t.getReceiver(), t.getAmount()));
+						sender.addTransfers(new Transaction(t.getSender(), t.getReceiver(), t.getAmount()));
+						//Write to file BUG
+						i.remove();
+						storage.writeClient(t.getSender(), sender);
+						storage.writeClient(t.getReceiver(), destiny);
+					}
+			}
+			
 			message = new Message(true);
 		}
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
@@ -127,14 +138,13 @@ public class Server implements RemoteServerInterface{
 
 
 	public CipheredMessage audit(CipheredMessage msg) throws RemoteException {
-		CryptoManager manager = new CryptoManager(SERVER_KEY, "passwd");
 		//decipher
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 		
 		//TODO AES? Compare client keys?
 		
-		Ledger value = storage.readClient(decipheredMessage.getSender());
-		Message message = new Message(SERVER_KEY, value.getBalance(), value.getTransfers());
+		Ledger value = storage.readClient(clients.get(decipheredMessage.getSender()));
+		Message message = new Message(manager.getPublicKey(), value.getBalance(), value.getTransfers());
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
 		return cipheredMessage;
 	}

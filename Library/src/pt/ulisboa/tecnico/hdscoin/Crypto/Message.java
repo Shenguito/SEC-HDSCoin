@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdscoin.Crypto;
 
 import java.io.Serializable;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,23 +10,23 @@ import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 public class Message implements Serializable{
 
     private double amount;
-    private String sender;
-    private String destination;
+    private PublicKey sender;
+    private PublicKey destination;
     private List<Transaction> transactions;
     private boolean confirm;
 
     //Client
     //receive
-    public Message(String sender, List<Transaction> transactions) {
+    public Message(PublicKey sender, List<Transaction> transactions) {
         this.sender = sender;
         this.transactions = transactions;
     }
     //check && audit
-    public Message(String sender){
+    public Message(PublicKey sender){
         this.sender = sender;
     }
     //send
-    public Message(double value, String sender, String destination){
+    public Message(double value, PublicKey sender, PublicKey destination){
         this.sender = sender;
         this.amount = value;
         this.destination = destination;
@@ -39,7 +40,7 @@ public class Message implements Serializable{
 
    
 	//check && audit
-    public Message(String sender, double amount, List<Transaction> transactions){
+    public Message(PublicKey sender, double amount, List<Transaction> transactions){
         this.sender = sender;
         this.amount=amount;
         this.transactions=transactions;
@@ -49,11 +50,11 @@ public class Message implements Serializable{
         return amount;
     }
 
-    public String getSender() {
+    public PublicKey getSender() {
         return sender;
     }
 
-    public String getDestination() {
+    public PublicKey getDestination() {
 		return destination;
 	}
 	public List<Transaction> getTransactions() {

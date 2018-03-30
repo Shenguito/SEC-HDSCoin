@@ -4,19 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
 
 public class Storage {
@@ -24,7 +16,11 @@ public class Storage {
 	//private final String Historyfilename="history"+File.separator+"transactions.json";
 	
 	public Storage() {
-		
+		File file = new File("client");
+		if(file.isDirectory()) {
+			for(File f: file.listFiles())
+				f.delete();
+		}
 		objectMapper = new ObjectMapper();
 	}
 	

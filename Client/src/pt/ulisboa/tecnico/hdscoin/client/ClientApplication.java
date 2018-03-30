@@ -38,6 +38,7 @@ public class ClientApplication {
     		}catch(Exception e) {
     			continue;
     		}
+    		exit=false;
 	    	while(!exit) {
 	    		System.out.println("\nChoose below options by its number...");
 	    		System.out.println("1-Register.");

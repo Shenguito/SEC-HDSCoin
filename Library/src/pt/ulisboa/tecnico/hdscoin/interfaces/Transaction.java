@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdscoin.interfaces;
 
 import java.io.Serializable;
+import java.security.PublicKey;
 
 public class Transaction implements Serializable{
 	private int id=0;
@@ -35,6 +36,7 @@ public class Transaction implements Serializable{
 	public double getAmount() {
 		return amount;
 	}
+	@Override
 	public String toString() {
 		if(id!=0){
 			return "id: "+getId()+"\tSender:"+getSender()+
@@ -45,5 +47,12 @@ public class Transaction implements Serializable{
 				"\tReceiver:"+getReceiver()+
 				"\tAmount:"+getAmount()+".";
 	}
-	
+
+	public boolean myEquals(Transaction obj) {
+		if(sender.equals(obj.getSender())&&
+				receiver.equals(obj.getReceiver())&&
+				amount==obj.getAmount())
+			return true;
+	    return false;
+	}
 }
