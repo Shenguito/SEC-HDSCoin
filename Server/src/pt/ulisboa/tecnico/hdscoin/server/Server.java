@@ -46,7 +46,7 @@ public class Server implements RemoteServerInterface{
 		
 		System.out.println("Received client: "+clientName);
 		if(!storage.checkFileExists(clientName)){
-			storage.writeClient(clientName, new Ledger(publickey.getEncoded(), 100, new ArrayList<Transaction>(), new ArrayList<Transaction>()));
+			storage.writeClient(clientName, new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>()));
 		}else {
 			System.out.println("User already registered!");
 			throw new RemoteException();

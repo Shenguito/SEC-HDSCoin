@@ -14,22 +14,29 @@ import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 */
 
 public class Ledger implements Serializable{
-	private byte[] publickey;
+	
+	//TODO JACKSON BUG
+	//private byte[] publickey;
+	private PublicKey publickey;
 	private double balance;
 	private List<Transaction> transfers;
 	private List<Transaction> pendingTransfers;
 	public Ledger() {
 		
 	}
-	public Ledger(byte[] publickey, double balances, List<Transaction> transfers, List<Transaction> pendingTransfers) {
+	public Ledger(PublicKey publickey, double balances, List<Transaction> transfers, List<Transaction> pendingTransfers) {
+		//TODO JACKSON BUG
+		//this.publickey=publickey.getEncoded();
 		this.publickey=publickey;
 		this.balance = balances;
 		this.transfers = transfers;
 		this.pendingTransfers = pendingTransfers;
 	}
-	public byte[] getPublicKey() {
+	/* not needed yet
+	public PublicKey getPublicKey() {
 		return publickey;
-}
+	}
+	*/
 	public double getBalance() {
 		return balance;
 	}
