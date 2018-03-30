@@ -1,14 +1,22 @@
 package pt.ulisboa.tecnico.hdscoin.client;
 
+import java.io.File;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.crypto.Cipher;
+
 import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
 import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
+import pt.ulisboa.tecnico.hdscoin.interfaces.KeystoreManager;
 import pt.ulisboa.tecnico.hdscoin.interfaces.RemoteServerInterface;
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
@@ -19,43 +27,38 @@ public class Client {
     
     private List<Transaction> pendingTransaction;
     
+    
+ 	private KeystoreManager keyPairManager;
+ 	private KeyPair clientKeyPair;
+ 	private String clientName;
+ 	private PublicKey clientPublicKey;
+ 	private PrivateKey clientPriveteKey;
+    
+    
 	private String host;
-	public Client(String host) {
+	public Client(String host, String clientName){
 		this.host=host;
-		pendingTransaction=new ArrayList<Transaction>();
-	}
-	public void sample() {
+		this.clientName=clientName;
 		try {
-
-            Registry registry = LocateRegistry.getRegistry(host);
-            RemoteServerInterface stub = (RemoteServerInterface) registry.lookup("RemoteServerInterface");
-            
-            CryptoManager manager = new CryptoManager(CLIENT_KEY, "passwd");
-            Message msg = new Message(CLIENT_KEY);
-            CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, SERVER_KEY);
-
-            CipheredMessage response = stub.sample(CLIENT_KEY, cipheredMessage);
-
-            Message responseDeciphered = manager.decipherCipheredMessage(response);
-
-            System.out.println("response: " + responseDeciphered);
-        } catch (Exception e) {
-            System.err.println("Client exception: " + e.toString());
-            e.printStackTrace();
-            System.out.println("Sample test failed!");
-        }
-		System.out.println("Sample test successed!");
+			keyPairManager=new KeystoreManager("KeyStore"+File.separator+"keystore.ks", "cofre123");
+			clientKeyPair=keyPairManager.getKeyPair(clientName, clientName+"123");
+			clientPublicKey=clientKeyPair.getPublic();
+			clientPriveteKey=clientKeyPair.getPrivate();
+		}catch(Exception e) {
+			System.out.println("KeyPair Error");
+			e.printStackTrace();
+		}
+		pendingTransaction=new ArrayList<Transaction>();
+		System.out.println("Welcome "+clientName+"!");
 	}
+
 	public void register() {
 		try {
 
             Registry registry = LocateRegistry.getRegistry(host);
             RemoteServerInterface serverInterface = (RemoteServerInterface) registry.lookup("RemoteServerInterface");
-            
-            CryptoManager manager = new CryptoManager(CLIENT_KEY, "passwd");
-            Message msg = new Message(CLIENT_KEY);
 
-            SERVER_KEY=serverInterface.register(CLIENT_KEY);
+            SERVER_KEY=serverInterface.register(clientName, clientPublicKey);
             
             System.out.println("You are registered!");
         } catch (Exception e) {
@@ -179,5 +182,9 @@ public class Client {
             e.printStackTrace();
         }
 		System.out.println("Your transfers history:");
+	}
+	
+	public String getClientName() {
+		return clientName;
 	}
 }

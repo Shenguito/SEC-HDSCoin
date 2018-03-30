@@ -18,10 +18,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
+
 public class Storage {
 	private ObjectMapper objectMapper;
 	//private final String Historyfilename="history"+File.separator+"transactions.json";
+	
 	public Storage() {
+		
 		objectMapper = new ObjectMapper();
 	}
 	
@@ -72,6 +75,7 @@ public class Storage {
 	private String getFile(String name) {
 		return "client"+File.separator+name+".json";
 	}
+	
 	
 	/*
 

@@ -1,7 +1,11 @@
 package pt.ulisboa.tecnico.hdscoin.server.storage;
 
 import java.io.Serializable;
+import java.security.PublicKey;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
@@ -10,17 +14,22 @@ import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 */
 
 public class Ledger implements Serializable{
+	private byte[] publickey;
 	private double balance;
 	private List<Transaction> transfers;
 	private List<Transaction> pendingTransfers;
 	public Ledger() {
 		
 	}
-	public Ledger(double balances, List<Transaction> transfers, List<Transaction> pendingTransfers) {
+	public Ledger(byte[] publickey, double balances, List<Transaction> transfers, List<Transaction> pendingTransfers) {
+		this.publickey=publickey;
 		this.balance = balances;
 		this.transfers = transfers;
 		this.pendingTransfers = pendingTransfers;
 	}
+	public byte[] getPublicKey() {
+		return publickey;
+}
 	public double getBalance() {
 		return balance;
 	}
@@ -51,5 +60,11 @@ public class Ledger implements Serializable{
 	}
 	public void removePendingTransfers(Transaction pendingTransfer) {
 		pendingTransfers.add(pendingTransfer);
+	}
+
+	@Override
+	public String toString()
+	{
+		return "Balance: "+balance+"\nPending transfer size: "+pendingTransfers.size()+"\nTransfer size: "+transfers.size()+".";
 	}
 }

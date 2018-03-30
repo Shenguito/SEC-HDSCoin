@@ -123,7 +123,6 @@ public class CryptoManager {
      * @return {@link Message} object that was encapsulated
      */
 
-    //TODO: MUDAR ISTO
     public Message decipherCipheredMessage(CipheredMessage cipheredMessage){
         Message deciphMsg = null;
         try {
