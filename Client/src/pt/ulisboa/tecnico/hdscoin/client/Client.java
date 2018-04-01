@@ -45,7 +45,7 @@ public class Client {
 		try {
 			keyPairManager=new KeystoreManager("KeyStore"+File.separator+"keystore.ks", "cofre123");
 			clientKeyPair=keyPairManager.getKeyPair(clientName, clientName+"123");
-			manager = new CryptoManager(clientKeyPair.getPublic(), clientKeyPair.getPrivate());
+			manager = new CryptoManager(clientKeyPair.getPublic(), clientKeyPair.getPrivate(), keyPairManager);
 		}catch(Exception e) {
 			System.out.println("KeyPair Error");
 			e.printStackTrace();

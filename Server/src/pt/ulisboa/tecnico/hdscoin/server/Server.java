@@ -1,7 +1,6 @@
 package pt.ulisboa.tecnico.hdscoin.server;
 
 import java.security.KeyPair;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +33,7 @@ public class Server implements RemoteServerInterface{
 		try {
 			keyPairManager=new KeystoreManager("KeyStore"+File.separator+"server.ks", "server123");
 			serverKeyPair=keyPairManager.getKeyPair("server", "server123");
-			manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate());
+			manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
 		}catch(Exception e) {
 			System.out.println("KeyPair Error");
 			e.printStackTrace();
@@ -65,7 +64,7 @@ public class Server implements RemoteServerInterface{
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 		
 		
-		Message message = new Message(false);//case the client does not exist
+		Message message = new Message(serverKeyPair.getPublic(), false);//case the client does not exist
 		if(storage.checkFileExists(clients.get(decipheredMessage.getSender()))){
 			Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
 			if(sender.sendBalance(decipheredMessage.getAmount())) {
@@ -74,7 +73,7 @@ public class Server implements RemoteServerInterface{
 				destiny.addPendingTransfers(new Transaction(destiny.getPendingTransfers().size()+1,clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount()));
 				storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
 				storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
-				message = new Message(true);
+				message = new Message(serverKeyPair.getPublic(), true);
 			}
 		}
 		
@@ -106,7 +105,7 @@ public class Server implements RemoteServerInterface{
 		
 		//TODO AES? Compare client keys?
 		
-		Message message = new Message(false);
+		Message message = new Message(serverKeyPair.getPublic(), false);
 		if(true) {//TODO pending tranfers transaction
 			//decipheredMessage.getDestination()==null
 			Ledger destiny = storage.readClient(clients.get(decipheredMessage.getSender()));
@@ -130,7 +129,7 @@ public class Server implements RemoteServerInterface{
 					}
 			}
 			
-			message = new Message(true);
+			message = new Message(serverKeyPair.getPublic(), true);
 		}
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
 		return cipheredMessage;

@@ -34,8 +34,9 @@ public class Message implements Serializable{
 
     //Server
     //receive && send
-    public Message(boolean confirm){
+    public Message(PublicKey sender, boolean confirm){
         this.confirm = confirm;
+        this.sender = sender;
     }
 
    

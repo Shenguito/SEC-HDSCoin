@@ -1,17 +1,13 @@
 package pt.ulisboa.tecnico.hdscoin.Crypto;
 
     
+import pt.ulisboa.tecnico.hdscoin.interfaces.KeystoreManager;
+
 import javax.crypto.*;
-import javax.crypto.spec.IvParameterSpec;
-import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.security.*;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.*;
 
 /**
  * Class for handling Crypto specific to our encryption protocol.
@@ -30,12 +26,15 @@ public class CryptoManager {
      * This node's RSA private key
      */
     private PrivateKey privKey;
+
+    private KeystoreManager keyPairManager;
     
     
-    public CryptoManager(PublicKey publicKey, PrivateKey privateKey){
+    public CryptoManager(PublicKey publicKey, PrivateKey privateKey, KeystoreManager keyPairManager){
         
     	this.pubKey=publicKey;
     	this.privKey=privateKey;
+    	this.keyPairManager = keyPairManager;
         System.out.println("CRYPTO MANAGER STARTED");
     }
     
@@ -145,8 +144,8 @@ public class CryptoManager {
             deciphMsg = (Message) fromBytes(decipheredContent);
             byte[] decipheredIntegrityBytes = CryptoUtil.symDecipher(cipheredMessage.getIntegrityCheck(), cipheredMessage.getIV(), key);
             IntegrityCheck check = (IntegrityCheck) fromBytes(decipheredIntegrityBytes);
-            //if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), check, deciphMsg.getSender())) return deciphMsg;
-            //else throw new IllegalStateException("Invalid Signature");
+            if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), check, deciphMsg.getSender())) return deciphMsg;
+            else throw new IllegalStateException("Invalid Signature");
         } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
         }
@@ -171,7 +170,7 @@ public class CryptoManager {
      */
     private boolean verifyIntegrity(Message msg, byte[] IV, IntegrityCheck check, PublicKey key) throws IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException, InvalidAlgorithmParameterException {
         byte[] concatParams = concatHashParams(msg, check.getNonce(), IV);
-        return CryptoUtil.verifyDigitalSignature(check.getDigitalSignature(), concatParams, key);
+       return CryptoUtil.verifyDigitalSignature(check.getDigitalSignature(), concatParams, key);
     }
 
     /**
