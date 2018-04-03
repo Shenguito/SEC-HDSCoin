@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdscoin.Crypto;
+package pt.ulisboa.tecnico.hdscoin.crypto;
 
     
 import pt.ulisboa.tecnico.hdscoin.interfaces.KeystoreManager;

@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdscoin.Crypto;
+package pt.ulisboa.tecnico.hdscoin.crypto;
 
 import java.io.Serializable;
 import java.security.PublicKey;

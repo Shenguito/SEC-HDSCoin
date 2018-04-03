@@ -15,9 +15,9 @@ import java.util.List;
 
 import javax.crypto.Cipher;
 
-import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
-import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
-import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
+import pt.ulisboa.tecnico.hdscoin.crypto.CipheredMessage;
+import pt.ulisboa.tecnico.hdscoin.crypto.CryptoManager;
+import pt.ulisboa.tecnico.hdscoin.crypto.Message;
 import pt.ulisboa.tecnico.hdscoin.interfaces.KeystoreManager;
 import pt.ulisboa.tecnico.hdscoin.interfaces.RemoteServerInterface;
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
@@ -43,8 +43,8 @@ public class Client {
 		serverInterfaces = (RemoteServerInterface) registry.lookup("RemoteServerInterface");
 		this.clientName=clientName;
 		try {
-			keyPairManager=new KeystoreManager("KeyStore"+File.separator+"keystore.ks", "cofre123");
-			clientKeyPair=keyPairManager.getKeyPair(clientName, clientName+"123");
+			keyPairManager=new KeystoreManager("KeyStore"+File.separator+clientName.trim().toLowerCase()+".jks", clientName.trim().toLowerCase()+"123");
+			clientKeyPair=keyPairManager.getKeyPair(clientName.trim().toLowerCase(), clientName.trim().toLowerCase()+"123");
 			manager = new CryptoManager(clientKeyPair.getPublic(), clientKeyPair.getPrivate(), keyPairManager);
 		}catch(Exception e) {
 			System.out.println("KeyPair Error");
@@ -56,20 +56,20 @@ public class Client {
 	}
 
 	public void register() {
+		
 		try {
-
 			serverPublicKey=serverInterfaces.register(clientName, manager.getPublicKey());
 			if(serverPublicKey==null)
             	System.out.println("ServerKey is null");
             System.out.println("You are registered!");
+            keyPairManager.getPublicKeyByName("bob");
+    		
         } catch (Exception e) {
         }
 		
 	}
 	public void send(String sendDestination, String sendAmount) {
 		try {
-            
-            
             Message msg = new Message(Double.parseDouble(sendAmount.trim()), manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination)); //SERVER_key represents sendDestination
             if(serverPublicKey==null)
             	System.out.println("ServerKey is null");
@@ -114,7 +114,6 @@ public class Client {
             System.err.println("Client exception: " + e.toString());
             e.printStackTrace();
         }
-		
 	}
 	
 	public void receive(String receivedPendingTransfers) {

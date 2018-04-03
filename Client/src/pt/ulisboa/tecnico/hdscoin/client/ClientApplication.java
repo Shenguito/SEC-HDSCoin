@@ -4,9 +4,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
 
-import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
-import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
-import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
+import pt.ulisboa.tecnico.hdscoin.crypto.CipheredMessage;
+import pt.ulisboa.tecnico.hdscoin.crypto.CryptoManager;
+import pt.ulisboa.tecnico.hdscoin.crypto.Message;
 import pt.ulisboa.tecnico.hdscoin.interfaces.*;
 
 public class ClientApplication {

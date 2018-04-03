@@ -1,17 +1,25 @@
 package pt.ulisboa.tecnico.hdscoin.server;
 
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+
 import java.io.File;
+import java.io.IOException;
 import java.rmi.RemoteException;
 
-import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
-import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
-import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
+import pt.ulisboa.tecnico.hdscoin.crypto.CipheredMessage;
+import pt.ulisboa.tecnico.hdscoin.crypto.CryptoManager;
+import pt.ulisboa.tecnico.hdscoin.crypto.Message;
 import pt.ulisboa.tecnico.hdscoin.interfaces.*;
 import pt.ulisboa.tecnico.hdscoin.server.storage.*;
 
@@ -26,38 +34,67 @@ public class Server implements RemoteServerInterface{
  	private KeyPair serverKeyPair;
  	private CryptoManager manager;
  	
- 	private HashMap<PublicKey, String> clients=new HashMap<PublicKey, String>();
+ 	private HashMap<PublicKey, String> clients;
  	
 	public Server() {
 		storage=new Storage();
 		try {
-			keyPairManager=new KeystoreManager("KeyStore"+File.separator+"server.ks", "server123");
+			clients=storage.getClients();
+			for(String s:clients.values())
+				System.out.println("Client already exist: "+s);
+		} catch (JsonParseException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (JsonMappingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (NoSuchAlgorithmException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (InvalidKeySpecException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		try {
+			keyPairManager=new KeystoreManager("KeyStore"+File.separator+"server.jks", "server123");
 			serverKeyPair=keyPairManager.getKeyPair("server", "server123");
 			manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
 		}catch(Exception e) {
 			System.out.println("KeyPair Error");
 			e.printStackTrace();
 		}
+		/* test discard message
+		for(int i=0; i<10;i++)
+			System.out.println(discardMessage());
+		*/
 		
 	}
 	// TODO jackson can not save byte[] nor public key
-	public PublicKey register(String clientName, PublicKey publickey) throws RemoteException {
-		
+	public synchronized PublicKey register(String clientName, PublicKey publickey) throws RemoteException {
+		/* TODO create a new Exception
+		if(discardMessage())
+			throw new RemoteException();
+		*/
 		//System.out.println("Received client: "+clientName);
 		if(!storage.checkFileExists(clientName)){
-			storage.writeClient(clientName, new Ledger(100, new ArrayList<Transaction>(), new ArrayList<Transaction>()));
+			storage.writeClient(clientName, new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>()));
 		}else {
 			System.out.println("User already registered!");
 		}
-		if(clients.containsKey(clientName));
-		clients.put(publickey, clientName);
-		//System.out.println("Test reading "+clientName+" file:\n"+storage.readClient(clientName).toString());
+		if(!clients.containsKey(clientName)){
+			clients.put(publickey, clientName);
+			System.out.println("Test-> reading "+clientName+" file:\n"+storage.readClient(clientName).toString());
+		}
+		
 		
 		return manager.getPublicKey();
 	}
 	
 	//PublicKey source, PublicKey destination, int amount
-	public CipheredMessage send(CipheredMessage msg) throws RemoteException {
+	public synchronized CipheredMessage send(CipheredMessage msg) throws RemoteException {
 		
 		//decipher
 		System.out.println("Deciphering message");
@@ -99,7 +136,7 @@ public class Server implements RemoteServerInterface{
 	}
 
 
-	public CipheredMessage receive(CipheredMessage msg) throws RemoteException {
+	public synchronized CipheredMessage receive(CipheredMessage msg) throws RemoteException {
 		//decipher
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 		
@@ -146,6 +183,14 @@ public class Server implements RemoteServerInterface{
 		Message message = new Message(manager.getPublicKey(), value.getBalance(), value.getTransfers());
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
 		return cipheredMessage;
+	}
+	
+	
+	private boolean discardMessage(){
+		if(1==(new Random().nextInt(1 - 0 + 1) + 0)){
+			return false;
+		}
+		return true;
 	}
 	    
 	

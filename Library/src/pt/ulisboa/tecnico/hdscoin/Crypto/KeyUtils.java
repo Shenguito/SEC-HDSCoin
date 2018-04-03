@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdscoin.Crypto;
+package pt.ulisboa.tecnico.hdscoin.crypto;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.FileNotFoundException;

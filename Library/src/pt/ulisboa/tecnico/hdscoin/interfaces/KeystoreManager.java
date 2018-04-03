@@ -22,9 +22,9 @@ public class KeystoreManager {
 	}
 
 	public KeystoreManager(String name, String pass) throws Exception{
-
-	   ks = KeyStore.getInstance(KeyStore.getDefaultType());
-	   ks.load(new FileInputStream(name), pass.toCharArray());
+		
+		ks = KeyStore.getInstance(KeyStore.getDefaultType());
+		ks.load(new FileInputStream(name), pass.toCharArray());
 	}
 
 	public KeyPair getKeyPair(String name, String pass) throws Exception{
@@ -47,17 +47,9 @@ public class KeystoreManager {
 	
 	public PublicKey getPublicKeyByName(String name) throws Exception{
 
-		Key key = getKeyStore().getKey(name.toLowerCase(), (name.toLowerCase()+"123").toCharArray());
-	    if (key instanceof PrivateKey) {
-	      // Get certificate of public key
-	      Certificate cert = getKeyStore().getCertificate(name);
-
-	      // Return a public key
-	      return cert.getPublicKey();
-	      
-	    }
-
-	    return null;
+		Certificate certificate = getKeyStore().getCertificate(name);
+		PublicKey publicKey = certificate.getPublicKey();
+	    return publicKey;
 	}
 	
 	public static void main(String[] argv) throws Exception {

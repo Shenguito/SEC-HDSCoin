@@ -1,10 +1,10 @@
 package pt.ulisboa.tecnico.hdscoin.interfaces;
 
-import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
-
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.PublicKey;
+
+import pt.ulisboa.tecnico.hdscoin.crypto.CipheredMessage;
 
 public interface RemoteServerInterface extends Remote{
 	PublicKey register(String clientName, PublicKey pubkey) throws RemoteException;

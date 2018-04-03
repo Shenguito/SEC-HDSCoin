@@ -4,24 +4,31 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.HashMap;
+
+import javax.xml.bind.DatatypeConverter;
 
 import com.fasterxml.jackson.core	.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 public class Storage {
 	private ObjectMapper objectMapper;
-	//private final String Historyfilename="history"+File.separator+"transactions.json";
 	
 	public Storage() {
-		File file = new File("client");
-		if(file.isDirectory()) {
-			for(File f: file.listFiles())
-				f.delete();
-		}
+		//Remove clients' files
+		//removeClients();
 		objectMapper = new ObjectMapper();
+		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
 	
 	public Ledger readClient(String path) {
@@ -71,6 +78,35 @@ public class Storage {
 	private String getFile(String name) {
 		return "client"+File.separator+name+".json";
 	}
+	
+	private void removeClients(){
+		File file = new File("client");
+		if(file.isDirectory()) {
+			for(File f: file.listFiles())
+				f.delete();
+		}
+	}
+
+	public HashMap<PublicKey, String> getClients() throws JsonParseException, JsonMappingException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+		HashMap<PublicKey, String> allClients=new HashMap<PublicKey, String>();
+		File file = new File("client");
+		if(file.isDirectory()) {
+			for(File f: file.listFiles()){
+				allClients.put(getPubliKeyFromString(objectMapper.readValue(f, Ledger.class).getPublicKey()), f.getName().split(".json")[0].trim());
+			}
+				
+		}
+		return allClients;
+	}
+	
+	private PublicKey getPubliKeyFromString(String publickey) throws NoSuchAlgorithmException, InvalidKeySpecException{
+		byte[] bytes = DatatypeConverter.parseHexBinary(publickey);
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(bytes);
+        RSAPublicKey pubKey = (RSAPublicKey) kf.generatePublic(keySpecX509);
+        return pubKey;
+	}
+	
 	
 	
 	/*
@@ -132,4 +168,6 @@ public class Storage {
 		return senderTransactions;
 	}
 	*/
+	
+	
 }
