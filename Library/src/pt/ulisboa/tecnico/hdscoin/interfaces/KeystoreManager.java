@@ -52,6 +52,7 @@ public class KeystoreManager {
 	    return publicKey;
 	}
 	
+	
 	public static void main(String[] argv) throws Exception {
 		String SIGNATURE_ALGO = "SHA256withRSA";
 		String ASYM_CIPHER = "RSA/ECB/PKCS1Padding";

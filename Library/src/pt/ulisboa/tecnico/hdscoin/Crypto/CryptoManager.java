@@ -134,6 +134,7 @@ public class CryptoManager {
      * digital signature to ensure integrity and non-repudiation
      * @param cipheredMessage The received ciphered message
      * @return {@link Message} object that was encapsulated
+     * @throws Exception 
      */
 
     public Message decipherCipheredMessage(CipheredMessage cipheredMessage){
@@ -148,6 +149,7 @@ public class CryptoManager {
             else throw new IllegalStateException("Invalid Signature");
         } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
+            
         }
         return deciphMsg;
     }

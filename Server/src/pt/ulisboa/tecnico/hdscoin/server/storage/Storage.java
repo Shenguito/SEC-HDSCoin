@@ -11,6 +11,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -49,7 +50,7 @@ public class Storage {
 		return ledger;
 	}
 	
-	public void writeClient(String path, Ledger ledger) {
+	public synchronized void writeClient(String path, Ledger ledger) {
 		try {
 			objectMapper.writeValue(new FileOutputStream(getFile(path)), ledger);
 		} catch (JsonGenerationException e) {
@@ -67,8 +68,8 @@ public class Storage {
 		}
 	}
 	
-	public boolean checkFileExists(String pubkey) {
-		File f = new File(getFile(pubkey));
+	public boolean checkFileExists(String name) {
+		File f = new File(getFile(name));
 		if(f.exists() && !f.isDirectory()) { 
 			return true;
 		}
@@ -87,8 +88,8 @@ public class Storage {
 		}
 	}
 
-	public HashMap<PublicKey, String> getClients() throws JsonParseException, JsonMappingException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
-		HashMap<PublicKey, String> allClients=new HashMap<PublicKey, String>();
+	public ConcurrentHashMap<PublicKey, String> getClients() throws JsonParseException, JsonMappingException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+		ConcurrentHashMap<PublicKey, String> allClients=new ConcurrentHashMap<PublicKey, String>();
 		File file = new File("client");
 		if(file.isDirectory()) {
 			for(File f: file.listFiles()){

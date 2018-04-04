@@ -11,13 +11,7 @@ public class Transaction implements Serializable{
 	public Transaction() {
 		
 	}
-	//Transaction with id for pending transaction!
-	public Transaction(int id, String sender, String receiver, double amount) {
-		this.id=id;
-		this.sender = sender;
-		this.receiver = receiver;
-		this.amount = amount;
-	}
+
 	//Transaction without id for transaction done!
 	public Transaction(String sender, String receiver, double amount) {
 		this.sender = sender;
@@ -38,15 +32,12 @@ public class Transaction implements Serializable{
 	}
 	@Override
 	public String toString() {
-		if(id!=0){
-			return "id: "+getId()+"\tSender:"+getSender()+
-					"\tReceiver:"+getReceiver()+
-					"\tAmount:"+getAmount()+".";
-		}
+		
 		return "Sender:"+getSender()+
 				"\tReceiver:"+getReceiver()+
 				"\tAmount:"+getAmount()+".";
 	}
+	
 
 	public boolean myEquals(Transaction obj) {
 		if(sender.equals(obj.getSender())&&

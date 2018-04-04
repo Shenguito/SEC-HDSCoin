@@ -14,6 +14,7 @@ public class Message implements Serializable{
     private PublicKey destination;
     private List<Transaction> transactions;
     private boolean confirm;
+    private String checkedName;
 
     //Client
     //receive
@@ -22,8 +23,9 @@ public class Message implements Serializable{
         this.transactions = transactions;
     }
     //check && audit
-    public Message(PublicKey sender){
+    public Message(PublicKey sender, PublicKey destination){
         this.sender = sender;
+        this.destination=destination;
     }
     //send
     public Message(double value, PublicKey sender, PublicKey destination){
@@ -41,10 +43,11 @@ public class Message implements Serializable{
 
    
 	//check && audit
-    public Message(PublicKey sender, double amount, List<Transaction> transactions){
+    public Message(PublicKey sender, double amount, List<Transaction> transactions, String checkedName){
         this.sender = sender;
         this.amount=amount;
         this.transactions=transactions;
+        this.checkedName=checkedName;
     }
 
     public double getAmount() {
@@ -63,6 +66,9 @@ public class Message implements Serializable{
 	}
 	public boolean isConfirm() {
 		return confirm;
+	}
+	public String getCheckedName(){
+		return checkedName;
 	}
 
 

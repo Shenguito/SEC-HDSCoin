@@ -14,7 +14,6 @@
         <sourceDirectory>src</sourceDirectory>
     </build>
     <dependencies>
-
         <dependency>
             <groupId>SEC</groupId>
             <artifactId>Library</artifactId>

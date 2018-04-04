@@ -29,7 +29,7 @@ public class Ledger implements Serializable{
 	//private PublicKey publickey;
 	
 	@JsonProperty("publicKey")
-	private String publickey;
+	private String publicKey;
 	private double balance;
 	private List<Transaction> transfers;
 	private List<Transaction> pendingTransfers;
@@ -46,13 +46,13 @@ public class Ledger implements Serializable{
 	*/
 	
 	public Ledger(PublicKey publickey, double balances, List<Transaction> transfers, List<Transaction> pendingTransfers) {
-		//TODO JACKSON BUG
+		
 		StringBuffer toReturn = new StringBuffer();
 		byte[] keyBytes=publickey.getEncoded();
         for (int i = 0; i < keyBytes.length; ++i) {
             toReturn.append(Integer.toHexString(0x0100 + (keyBytes[i] & 0x00FF)).substring(1));
         }
-		this.publickey=toReturn.toString();
+		this.publicKey=toReturn.toString();
 		this.balance = balances;
 		this.transfers = transfers;
 		this.pendingTransfers = pendingTransfers;
@@ -60,7 +60,7 @@ public class Ledger implements Serializable{
 	
 	@JsonIgnore
 	public PublicKey getPubliKeyFromString() throws NoSuchAlgorithmException, InvalidKeySpecException{
-		byte[] bytes = DatatypeConverter.parseHexBinary(publickey);
+		byte[] bytes = DatatypeConverter.parseHexBinary(publicKey);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(bytes);
         RSAPublicKey pubKey = (RSAPublicKey) kf.generatePublic(keySpecX509);
@@ -70,7 +70,7 @@ public class Ledger implements Serializable{
 	
 	
 	public String getPublicKey(){
-		return publickey;
+		return publicKey;
 	}
 	
 	public double getBalance() {
@@ -108,6 +108,6 @@ public class Ledger implements Serializable{
 	@Override
 	public String toString()
 	{
-		return "Balance: "+balance+"\nPending transfer size: "+pendingTransfers.size()+"\nTransfer size: "+transfers.size()+"\nPublicKey:"+publickey+".";
+		return "Balance: "+balance+"\nPending transfer size: "+pendingTransfers.size()+"\nTransfer size: "+transfers.size()+"\nPublicKey:"+publicKey+".";
 	}
 }
