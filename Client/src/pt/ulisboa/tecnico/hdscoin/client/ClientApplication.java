@@ -59,8 +59,7 @@ public class ClientApplication {
 	    		if(registerOption.equals("0")) {
 	        		exit=true;
 	        	}else if(registerOption.equals("1")) {
-	        		client.register();
-	        		boolean registered=true;
+	        		boolean registered=client.register();
 	        		while(registered){
 	        			System.out.println("\nChoose below options by its number...");
 		        		System.out.println("1-Send.");

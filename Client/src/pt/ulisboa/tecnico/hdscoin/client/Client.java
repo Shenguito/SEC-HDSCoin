@@ -36,8 +36,7 @@ public class Client {
  	private String clientName;
     private PublicKey serverPublicKey;
     
-    //private LastSentMessage lastSentMessage;
-    private CipheredMessage lastSentMessage;
+    private LastSentMessage lastSentMessage;
     
 	private String host;
 	public Client(String host, String clientName, String password) throws RemoteException, NotBoundException{
@@ -52,8 +51,7 @@ public class Client {
 			System.out.println("KeyPair Error");
 			e.printStackTrace();
 		}
-		//lastSentMessage=new LastSentMessage();
-		lastSentMessage=null;
+		lastSentMessage=new LastSentMessage();
 		pendingTransaction=new ArrayList<Transaction>();
 		System.out.println("Welcome "+clientName+"!");
 	}
@@ -74,7 +72,7 @@ public class Client {
 	            System.out.println("You are registered!");
 	            return true;
 	        } catch (RemoteException e) {
-	        	System.out.println("Connection fail, trying again...");
+	        	System.out.println("Connection fail...");
 	        	tentries++;
 	        }
 		}
@@ -84,8 +82,8 @@ public class Client {
 	public synchronized boolean reSend(){
 		boolean success=false;
 		int tentries=0;
-		//CipheredMessage cipheredMessage=lastSentMessage.readLastSentMessage(clientName);
-		CipheredMessage cipheredMessage=lastSentMessage;
+		CipheredMessage cipheredMessage=lastSentMessage.readLastSentMessage(clientName);
+		
 		while(!success&&tentries<ATTEMPT){
         	try{
 	    		CipheredMessage response = serverInterfaces.send(cipheredMessage);
@@ -93,21 +91,23 @@ public class Client {
 	            Message responseDeciphered = manager.decipherCipheredMessage(response);
 	
 	            System.out.println("Success: " + responseDeciphered.isConfirm());
-	            //lastSentMessage.removeLastSentMessage(clientName);
-	            lastSentMessage=null;
+	            lastSentMessage.removeLastSentMessage(clientName);
 	            return true;
             } catch (RemoteException e) {
-	        	System.out.println("Connection fail, trying again...");
+	        	System.out.println("Connection fail...");
 	        	tentries++;
 	        }catch(IllegalStateException e){
-	        	System.out.println("Invalid signature");
+	        	System.out.println("The message is already sent");
 	        	return true;
 	        }
         }
         return false;
 	}
 	public synchronized boolean send(String sendDestination, String sendAmount) {
-		
+		//just in case
+		if(lastSentMessage.checkFileExists(clientName)){
+			return reSend();
+		}
 		boolean success=false;
 		int tentries=0;
 		
@@ -126,15 +126,14 @@ public class Client {
 		            System.out.println("Success: " + responseDeciphered.isConfirm());
 		            return true;
 	            } catch (RemoteException e) {
-		        	System.out.println("Connection fail, trying again...");
+		        	System.out.println("Connection fail...");
 		        	tentries++;
 		        }catch(IllegalStateException e){
 		        	System.out.println("Invalid signature");
 		        	return true;
 		        }
             }
-            //lastSentMessage.writeLastSentMessage(clientName, cipheredMessage);
-            lastSentMessage=cipheredMessage;
+            lastSentMessage.writeLastSentMessage(clientName, cipheredMessage);
             return false;
 		} catch(Exception e){
         	System.out.println("Invalid message");
@@ -174,7 +173,7 @@ public class Client {
 	    	            success=true;
 	    	            return true;
 	            	} catch (RemoteException e) {
-	    	        	System.out.println("Connection fail, trying again...");
+	    	        	System.out.println("Connection fail...");
 	    	        	tentries++;
 	    	        } catch(IllegalStateException e){
 	    	        	System.out.println("Invalid signature");
@@ -188,64 +187,7 @@ public class Client {
 		
 		return false;
 	}
-	/* old one
-	public boolean receive(String receivedPendingTransfers) {
-		boolean success=false;
-		int tentries=0;
-		
-		try {
-            List <Transaction> pendingTransfers=new ArrayList<Transaction>();
-            for(Transaction t: pendingTransaction){
-            	System.out.println("1-PendingTransactions: "+t.toString());
-            }
-            try {
-            	if(receivedPendingTransfers.split(" ").length==0)
-            		pendingTransfers.add(pendingTransaction.get(0));
-        		else
-		            for(String id:receivedPendingTransfers.split(" ")) {
-		            	pendingTransfers.add(pendingTransaction.get(Integer.parseInt(id.trim())-1));
-		            }
-            	pendingTransaction=new ArrayList<Transaction>();
-            	for(Transaction t: pendingTransfers){
-            		System.out.println("1-pendingTransfers: "+t.toString());
-                }
-            }catch(IndexOutOfBoundsException e){
-            	System.out.println("Receive error... Check first!");
-            	return false;
-            }catch(Exception e) {
-            	System.out.println("Receive error... Your input was "+receivedPendingTransfers+"!");
-            	return false;
-            }
-            
-            Message msg = new Message(manager.getPublicKey(), pendingTransfers);
-            while(!success&&tentries<ATTEMPT){
-            	try{
-		            CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
-		            //System.out.println("Test2");
-		            //FAIL HERE
-		            CipheredMessage response = serverInterfaces.receive(cipheredMessage);
-
-		            Message responseDeciphered = manager.decipherCipheredMessage(response);
-		            //System.out.println("Test4");
-		            System.out.println("Success: " + responseDeciphered.isConfirm());
-		            pendingTransaction=new ArrayList<Transaction>();
-		            return true;
-            	} catch (RemoteException e) {
-    	        	System.out.println("Connection fail, trying again...");
-    	        	tentries++;
-    	        } catch(IllegalStateException e){
-    	        	System.out.println("Illegal State Exception Invalid signature");
-    	        	return true;
-    	        }
-            }
-        } catch (Exception e) {
-        	System.out.println("Invalid message");
-        	return false;
-        }
-		return false;
-	}
-	*/
-	// new one
+	
 	public boolean receive(int receivedPendingTransfers) {
 		
 		if(pendingTransaction.size()==0){
@@ -270,7 +212,7 @@ public class Client {
 		            System.out.println("Success: " + responseDeciphered.isConfirm());
 		            return true;
             	} catch (RemoteException e) {
-    	        	System.out.println("Connection fail, trying again...");
+    	        	System.out.println("Connection fail...");
     	        	tentries++;
     	        } catch(IllegalStateException e){
     	        	System.out.println("Illegal State Exception Invalid signature");
@@ -305,7 +247,7 @@ public class Client {
 		            }
 		            return true;
             	} catch (RemoteException e) {
-    	        	System.out.println("Connection fail, trying again...");
+    	        	System.out.println("Connection fail...");
     	        	tentries++;
     	        } catch(IllegalStateException e){
     	        	System.out.println("Invalid signature");
@@ -322,22 +264,15 @@ public class Client {
 	public String getClientName() {
 		return clientName;
 	}
-	/*
+	
 	public boolean clientHasMessageNotSent(){
 		if(lastSentMessage.checkFileExists(clientName)){
 			return true;
 		}
 		return false;
 	}
-	*/
 	
 	public void removePendingTransaction(){
 		pendingTransaction=new ArrayList<Transaction>();
-	}
-	
-	public boolean clientHasMessageNotSent(){
-		if(lastSentMessage!=null)
-			return true;
-		return false;
 	}
 }

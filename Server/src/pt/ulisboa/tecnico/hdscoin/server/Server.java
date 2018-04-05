@@ -50,7 +50,7 @@ public class Server implements RemoteServerInterface{
 		try {
 			clients=storage.getClients();
 			for(String s:clients.values())
-				System.out.println("Client already exist: "+s);
+				System.out.println("Client already registered: "+s);
 		} catch (JsonParseException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

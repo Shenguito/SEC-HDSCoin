@@ -55,16 +55,20 @@ public class LastSentMessage {
 		}
 	}
 	public boolean checkFileExists(String client) {
-		File f = new File(getFile(client));
-		if(f.exists() && !f.isDirectory()) { 
-			return true;
+		try{
+			File f = new File(getFile(client));
+			if(f.exists() && !f.isDirectory()) {
+				return true;
+			}
+		}catch(Exception e){
+			
 		}
 		return false;
 	}
 	
 	public void removeLastSentMessage(String client){
 		File file = new File(getFile(client));
-		if(file.isDirectory()) {
+		if(!file.isDirectory()) {
 			file.delete();
 		}
 	}
