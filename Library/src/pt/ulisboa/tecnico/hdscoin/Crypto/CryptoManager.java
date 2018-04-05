@@ -123,8 +123,10 @@ public class CryptoManager {
             cipheredMessage = new CipheredMessage(cipheredContent, IV, cipheredIntegrityCheck, cipheredKey);
         } catch (NoSuchAlgorithmException | IOException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
             e.printStackTrace();
+            System.out.println("Cipher error1");
         } catch (Exception e) {
             e.printStackTrace();
+            System.out.println("Cipher error2");
         }
         return cipheredMessage;
     }
@@ -149,7 +151,7 @@ public class CryptoManager {
             else throw new IllegalStateException("Invalid Signature");
         } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
-            
+            System.out.println("Decipher error...");
         }
         return deciphMsg;
     }

@@ -1,7 +1,11 @@
 package pt.ulisboa.tecnico.hdscoin.client;
 
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 import pt.ulisboa.tecnico.hdscoin.crypto.CipheredMessage;
@@ -26,16 +30,22 @@ public class ClientApplication {
     		String userNumer = reader.nextLine();
     		try {
 	            switch (userNumer.trim()) {
-	                case "1":  client=new Client(host, "alice");
+	                case "1":  client=new Client(host, "alice", "alice123");
 	                         break;
-	                case "2":  client=new Client(host, "bob");
+	                case "2":  client=new Client(host, "bob", "bob123");
 	                         break;
-	                case "3":  client=new Client(host, "charly");
+	                case "3":  client=new Client(host, "charly", "charly123");
 	                		break;
 	                default: System.out.println("\nThe '"+userNumer+ "' is not a valid number!");
 	                		continue;
 	            }
-    		}catch(Exception e) {
+    		}catch(RemoteException e) {
+    			System.out.println("\nServer not started.");
+    			initing=true;
+    			continue;
+    		}catch(NotBoundException e) {
+    			System.out.println("\nServer not bound.");
+    			initing=true;
     			continue;
     		}
     		exit=false;
@@ -78,9 +88,24 @@ public class ClientApplication {
 			    			String destination = reader.nextLine();
 			    			client.check(destination.toLowerCase().trim());
 			    		}else if(option.equals("3")) {
-			    			System.out.println("Choose pending transfer by number and space (e.g. '1 2 3')");
-			    			String pendingTransfer = reader.nextLine();
-			        		client.receive(pendingTransfer);
+			    			boolean receiveExit=false;
+			    			List<Integer> chosenNumbers=new ArrayList<Integer>();
+			    			while(!receiveExit){
+			    				System.out.println("Choose pending transfer:\n0-back.");
+				    			String pendingTransfer = reader.nextLine();
+				    			int chosenNumber=Integer.parseInt(pendingTransfer.trim());
+				    			if(chosenNumber==0){
+				    				receiveExit=true;
+				    				continue;
+				    			}
+				    			if(chosenNumbers.contains(chosenNumber)){
+				    				System.out.println("Number '"+chosenNumber+"' is already chosen");
+				    				continue;
+				    			}
+				    			chosenNumbers.add(chosenNumber);
+				    			client.receive(chosenNumber);
+			    			}
+			    			client.removePendingTransaction();
 			    		}else if(option.equals("4")) {
 			    			System.out.println("Destination (Available: Alice Bob Charly; you are "+client.getClientName().toUpperCase()+"):");
 			    			String destination = reader.nextLine();

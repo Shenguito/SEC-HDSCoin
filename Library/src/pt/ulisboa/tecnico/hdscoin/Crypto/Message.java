@@ -13,14 +13,15 @@ public class Message implements Serializable{
     private PublicKey sender;
     private PublicKey destination;
     private List<Transaction> transactions;
+    private Transaction transaction;
     private boolean confirm;
     private String checkedName;
 
     //Client
     //receive
-    public Message(PublicKey sender, List<Transaction> transactions) {
+    public Message(PublicKey sender, Transaction transaction) {
         this.sender = sender;
-        this.transactions = transactions;
+        this.transaction = transaction;
     }
     //check && audit
     public Message(PublicKey sender, PublicKey destination){
@@ -69,6 +70,9 @@ public class Message implements Serializable{
 	}
 	public String getCheckedName(){
 		return checkedName;
+	}
+	public Transaction getTransaction(){
+		return transaction;
 	}
 
 

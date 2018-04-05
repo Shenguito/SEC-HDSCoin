@@ -14,7 +14,7 @@ public class ClientTest {
 	@Test
 	public void register() {
 		try {
-			Client client=new Client("localhost", "alice");
+			Client client=new Client("localhost", "alice", "alice123");
 			assertTrue(client.register());
 		} catch (RemoteException e) {
 			fail("Not yet implemented");
@@ -27,8 +27,8 @@ public class ClientTest {
 	@Test
 	public void send() {
 		try {
-			Client alice=new Client("localhost", "alice");
-			Client bob=new Client("localhost", "bob");
+			Client alice=new Client("localhost", "alice", "alice123");
+			Client bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
 			assertTrue(alice.send("bob", "50"));
@@ -43,8 +43,8 @@ public class ClientTest {
 	@Test
 	public void check() {
 		try {
-			Client alice=new Client("localhost", "alice");
-			Client bob=new Client("localhost", "bob");
+			Client alice=new Client("localhost", "alice", "alice123");
+			Client bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
 			assertTrue(alice.send("bob", "10"));
@@ -63,8 +63,8 @@ public class ClientTest {
 	@Test
 	public void receive() {
 		try {
-			Client alice=new Client("localhost", "alice");
-			Client bob=new Client("localhost", "bob");
+			Client alice=new Client("localhost", "alice", "alice123");
+			Client bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
 			assertTrue(alice.send("bob", "10"));
@@ -75,8 +75,8 @@ public class ClientTest {
 			assertTrue(bob.send("alice", "10"));
 			assertTrue(alice.check("alice"));
 			assertTrue(bob.check("bob"));
-			assertTrue(alice.receive("1"));
-			assertTrue(bob.receive("1 2 3 4 5"));
+			assertTrue(alice.receive(1));
+			assertTrue(bob.receive(2));
 			
 		} catch (RemoteException e) {
 			fail("Not yet implemented");
@@ -90,8 +90,8 @@ public class ClientTest {
 	@Test
 	public void audit() {
 		try {
-			Client alice=new Client("localhost", "alice");
-			Client bob=new Client("localhost", "bob");
+			Client alice=new Client("localhost", "alice", "alice123");
+			Client bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
 			assertTrue(alice.send("bob", "10"));
@@ -102,8 +102,8 @@ public class ClientTest {
 			assertTrue(bob.send("alice", "10"));
 			assertTrue(alice.check("alice"));
 			assertTrue(bob.check("bob"));
-			assertTrue(alice.receive("1"));
-			assertTrue(bob.receive("1 2 3 4 5"));
+			assertTrue(alice.receive(1));
+			assertTrue(bob.receive(3));
 			assertTrue(alice.audit("alice"));
 			assertTrue(alice.audit("bob"));
 			

@@ -40,15 +40,13 @@ public class Client {
     private CipheredMessage lastSentMessage;
     
 	private String host;
-	public Client(String host, String clientName) throws RemoteException, NotBoundException{
+	public Client(String host, String clientName, String password) throws RemoteException, NotBoundException{
 		this.host=host;
 		this.clientName=clientName.toLowerCase().trim();
-		registry = LocateRegistry.getRegistry(host);
-		serverInterfaces = (RemoteServerInterface) registry.lookup("RemoteServerInterface");
-		this.clientName=clientName;
+		connect();
 		try {
-			keyPairManager=new KeystoreManager("KeyStore"+File.separator+clientName.trim().toLowerCase()+".jks", clientName.trim().toLowerCase()+"123");
-			clientKeyPair=keyPairManager.getKeyPair(clientName.trim().toLowerCase(), clientName.trim().toLowerCase()+"123");
+			keyPairManager=new KeystoreManager("KeyStore"+File.separator+clientName.trim().toLowerCase()+".jks", password);
+			clientKeyPair=keyPairManager.getKeyPair(clientName.trim().toLowerCase(), password);
 			manager = new CryptoManager(clientKeyPair.getPublic(), clientKeyPair.getPrivate(), keyPairManager);
 		}catch(Exception e) {
 			System.out.println("KeyPair Error");
@@ -58,6 +56,11 @@ public class Client {
 		lastSentMessage=null;
 		pendingTransaction=new ArrayList<Transaction>();
 		System.out.println("Welcome "+clientName+"!");
+	}
+	
+	private void connect() throws RemoteException, NotBoundException{
+		registry = LocateRegistry.getRegistry(host);
+		serverInterfaces = (RemoteServerInterface) registry.lookup("RemoteServerInterface");
 	}
 
 	public boolean register() {
@@ -185,7 +188,7 @@ public class Client {
 		
 		return false;
 	}
-	
+	/* old one
 	public boolean receive(String receivedPendingTransfers) {
 		boolean success=false;
 		int tentries=0;
@@ -226,6 +229,45 @@ public class Client {
 		            //System.out.println("Test4");
 		            System.out.println("Success: " + responseDeciphered.isConfirm());
 		            pendingTransaction=new ArrayList<Transaction>();
+		            return true;
+            	} catch (RemoteException e) {
+    	        	System.out.println("Connection fail, trying again...");
+    	        	tentries++;
+    	        } catch(IllegalStateException e){
+    	        	System.out.println("Illegal State Exception Invalid signature");
+    	        	return true;
+    	        }
+            }
+        } catch (Exception e) {
+        	System.out.println("Invalid message");
+        	return false;
+        }
+		return false;
+	}
+	*/
+	// new one
+	public boolean receive(int receivedPendingTransfers) {
+		
+		if(pendingTransaction.size()==0){
+			System.out.println("You do not have any pending transaction. Make a check first...");
+			return true;
+		}
+		
+		boolean success=false;
+		int tentries=0;
+		
+		try {
+			int index=receivedPendingTransfers-1;
+			Transaction receiveTransaction=pendingTransaction.get(index);
+            
+            Message msg = new Message(manager.getPublicKey(), receiveTransaction);
+            CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
+            while(!success&&tentries<ATTEMPT){
+            	try{
+		            CipheredMessage response = serverInterfaces.receive(cipheredMessage);
+
+		            Message responseDeciphered = manager.decipherCipheredMessage(response);
+		            System.out.println("Success: " + responseDeciphered.isConfirm());
 		            return true;
             	} catch (RemoteException e) {
     	        	System.out.println("Connection fail, trying again...");
@@ -288,6 +330,10 @@ public class Client {
 		return false;
 	}
 	*/
+	
+	public void removePendingTransaction(){
+		pendingTransaction=new ArrayList<Transaction>();
+	}
 	
 	public boolean clientHasMessageNotSent(){
 		if(lastSentMessage!=null)
