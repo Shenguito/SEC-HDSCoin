@@ -24,10 +24,6 @@ import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
 public class Ledger implements Serializable{
 	
-	//TODO JACKSON BUG
-	//private byte[] publickey;
-	//private PublicKey publickey;
-	
 	@JsonProperty("publicKey")
 	private String publicKey;
 	private double balance;
@@ -36,14 +32,6 @@ public class Ledger implements Serializable{
 	public Ledger() {
 		
 	}
-	/*
-	public Ledger(double balances, List<Transaction> transfers, List<Transaction> pendingTransfers) {
-		this.publickey="/r+0";
-		this.balance = balances;
-		this.transfers = transfers;
-		this.pendingTransfers = pendingTransfers;
-	}
-	*/
 	
 	public Ledger(PublicKey publickey, double balances, List<Transaction> transfers, List<Transaction> pendingTransfers) {
 		
@@ -77,7 +65,7 @@ public class Ledger implements Serializable{
 		return balance;
 	}
 	public boolean sendBalance(double send) {
-		if(balance-send>=0) {
+		if(balance-send>=0&&send>0) {
 			balance-=send;
 			return true;
 		}

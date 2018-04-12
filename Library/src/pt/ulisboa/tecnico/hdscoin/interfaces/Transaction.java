@@ -13,11 +13,13 @@ public class Transaction implements Serializable{
 	}
 
 	//Transaction without id for transaction done!
+	//TODO HASH (sender || receiver || amount) encrypted with client private key.
 	public Transaction(String sender, String receiver, double amount) {
 		this.sender = sender;
 		this.receiver = receiver;
 		this.amount = amount;
 	}
+	
 	public int getId() {
 		return id;
 	}

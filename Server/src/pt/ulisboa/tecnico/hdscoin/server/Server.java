@@ -52,19 +52,19 @@ public class Server implements RemoteServerInterface{
 			for(String s:clients.values())
 				System.out.println("Client already registered: "+s);
 		} catch (JsonParseException e1) {
-			// TODO Auto-generated catch block
+			
 			e1.printStackTrace();
 		} catch (JsonMappingException e1) {
-			// TODO Auto-generated catch block
+			
 			e1.printStackTrace();
 		} catch (NoSuchAlgorithmException e1) {
-			// TODO Auto-generated catch block
+			
 			e1.printStackTrace();
 		} catch (InvalidKeySpecException e1) {
-			// TODO Auto-generated catch block
+			
 			e1.printStackTrace();
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
+			
 			e1.printStackTrace();
 		}
 		try {
@@ -126,6 +126,7 @@ public class Server implements RemoteServerInterface{
 				Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination()));
 				//Transaction with id for pending
 				destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount()));
+				//TODO file corruption when crash
 				storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
 				storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
 				message = new Message(serverKeyPair.getPublic(), true);

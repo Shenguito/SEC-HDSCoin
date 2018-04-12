@@ -25,6 +25,8 @@ public class ServerApplication {
 					server.setServerFault(true);
 				}else if(Integer.parseInt(option.trim())==2){
 					server.setServerFault(false);
+				}else{
+					System.out.println("\nThe '"+option+ "' is not a valid number!");
 				}
 			}
 		} catch (RemoteException e) {
