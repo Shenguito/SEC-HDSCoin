@@ -3,26 +3,27 @@ package pt.ulisboa.tecnico.hdscoin.interfaces;
 import java.io.Serializable;
 import java.security.PublicKey;
 
+import pt.ulisboa.tecnico.hdscoin.crypto.IntegrityCheck;
+
 public class Transaction implements Serializable{
-	private int id=0;
 	private String sender;
 	private String receiver;
 	private double amount;
+	//TODO save integrityCheck
+	private IntegrityCheck digitalSign;
+	
 	public Transaction() {
 		
 	}
 
-	//Transaction without id for transaction done!
 	//TODO HASH (sender || receiver || amount) encrypted with client private key.
-	public Transaction(String sender, String receiver, double amount) {
+	public Transaction(String sender, String receiver, double amount, IntegrityCheck digitalSign) {
 		this.sender = sender;
 		this.receiver = receiver;
 		this.amount = amount;
+		this.digitalSign=digitalSign;
 	}
-	
-	public int getId() {
-		return id;
-	}
+
 	public String getSender() {
 		return sender;
 	}
@@ -31,6 +32,9 @@ public class Transaction implements Serializable{
 	}
 	public double getAmount() {
 		return amount;
+	}
+	public IntegrityCheck getIntegrityCheck() {
+		return digitalSign;
 	}
 	@Override
 	public String toString() {

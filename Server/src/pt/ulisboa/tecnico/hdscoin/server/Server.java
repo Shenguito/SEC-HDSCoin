@@ -24,6 +24,7 @@ import java.rmi.server.UnicastRemoteObject;
 
 import pt.ulisboa.tecnico.hdscoin.crypto.CipheredMessage;
 import pt.ulisboa.tecnico.hdscoin.crypto.CryptoManager;
+import pt.ulisboa.tecnico.hdscoin.crypto.IntegrityCheck;
 import pt.ulisboa.tecnico.hdscoin.crypto.Message;
 import pt.ulisboa.tecnico.hdscoin.interfaces.*;
 import pt.ulisboa.tecnico.hdscoin.server.storage.*;
@@ -118,14 +119,16 @@ public class Server implements RemoteServerInterface{
 
 		System.out.println("Deciphering message");
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
+		//TODO get integritycheck from "manager.decipherCipheredMessage(msg)"
+		//TOADD IntegrityCheck digitalSign=manager.getdigitalSign(decipheredMessage);
 		
 		Message message = new Message(serverKeyPair.getPublic(), false);//case the client does not exist
 		if(storage.checkFileExists(clients.get(decipheredMessage.getSender()))){
 			Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
 			if(sender.sendBalance(decipheredMessage.getAmount())) {
 				Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination()));
-				//Transaction with id for pending
-				destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount()));
+				//TODO add Transaction digital sign here from "manager.decipherCipheredMessage(msg)"
+				destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount(), new IntegrityCheck()));
 				//TODO file corruption when crash
 				storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
 				storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
@@ -179,8 +182,9 @@ public class Server implements RemoteServerInterface{
 			if(decipheredMessage.getTransaction().myEquals(t)){
 				Ledger sender = storage.readClient(t.getSender());
 				destiny.receiveBalance(t.getAmount());
-				destiny.addTransfers(new Transaction(t.getSender(), t.getReceiver(), t.getAmount()));
-				sender.addTransfers(new Transaction(t.getSender(), t.getReceiver(), t.getAmount()));
+				
+				destiny.addTransfers(t);
+				sender.addTransfers(t);
 				
 				//Write to file BUG
 				i.remove();
