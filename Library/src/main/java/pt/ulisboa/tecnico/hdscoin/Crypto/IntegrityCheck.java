@@ -2,6 +2,11 @@ package pt.ulisboa.tecnico.hdscoin.Crypto;
 
 import java.io.Serializable;
 
+import javax.xml.bind.DatatypeConverter;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Contains the params necessary to verifiy integrity
  * It's missing the IV
@@ -9,17 +14,30 @@ import java.io.Serializable;
  */
 public class IntegrityCheck implements Serializable{
 
-    private byte[] digitalSignature;
+	@JsonProperty("digitalSignature")
+    private String digitalSignature;
     private long nonce;
     private long timestamp;
+    
+    public IntegrityCheck(){
+    	
+    }
 
     public IntegrityCheck(byte[] digitalSignature, long nonce, long timestamp) {
-        this.digitalSignature = digitalSignature;
+    	StringBuffer toDigitalSignature = new StringBuffer();
+        for (int i = 0; i < digitalSignature.length; ++i) {
+        	toDigitalSignature.append(Integer.toHexString(0x0100 + (digitalSignature[i] & 0x00FF)).substring(1));
+        }
+        this.digitalSignature = toDigitalSignature.toString();
         this.nonce = nonce;
         this.timestamp = timestamp;
     }
-
+    @JsonIgnore
     public byte[] getDigitalSignature() {
+        return DatatypeConverter.parseHexBinary(digitalSignature);
+    }
+    
+    public String getStringDigitalSignature() {
         return digitalSignature;
     }
 

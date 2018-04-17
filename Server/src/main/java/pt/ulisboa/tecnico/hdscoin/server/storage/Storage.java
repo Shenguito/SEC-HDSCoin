@@ -33,19 +33,21 @@ public class Storage {
 		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
 	
+	
+	
 	public Ledger readClient(String path) {
 		File file = new File(getFile(path));
 		Ledger ledger=null;
 		try {
 			ledger = objectMapper.readValue(file, Ledger.class);
 		} catch (JsonParseException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 		return ledger;
@@ -55,16 +57,34 @@ public class Storage {
 		try {
 			objectMapper.writeValue(new FileOutputStream(getFile(path)), ledger);
 		} catch (JsonGenerationException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
+			e.printStackTrace();
+		}
+	}
+	
+	public synchronized void writeClientBackup(String path, Ledger ledger) {
+		try {
+			objectMapper.writeValue(new FileOutputStream(getBackupFile(path)), ledger);
+		} catch (JsonGenerationException e) {
+			
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			
+			e.printStackTrace();
+		} catch (IOException e) {
+			
 			e.printStackTrace();
 		}
 	}
@@ -78,7 +98,11 @@ public class Storage {
 	}
 	
 	private String getFile(String name) {
-		return "client"+File.separator+name+".json";
+		return "Server" + File.separator + "client"+File.separator+name;
+	}
+	
+	private String getBackupFile(String name) {
+		return "Server" + File.separator + "backup"+File.separator+name;
 	}
 	
 	private void removeClients(){
@@ -100,6 +124,39 @@ public class Storage {
 				
 		}
 		return allClients;
+	}
+	
+	public void backupCheck() {
+		
+		File file = new File("client");
+		if(file.isDirectory()) {
+			for(File f: file.listFiles()){
+				if(f.getName().contains("json")) {
+					try {
+						Ledger ledger = objectMapper.readValue(f, Ledger.class);
+						try {
+							Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
+							if (ledgerbackup.myEquals(ledger)) {
+								continue;
+							} else {
+								writeClientBackup(f.getName(), ledger);
+							}
+						} catch (Exception e1) {
+							writeClientBackup(f.getName(), ledger);
+						}
+					} catch (Exception e) {
+						try {
+							Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
+							writeClient(f.getName(), ledgerbackup);
+						} catch (Exception e1) {
+							System.out.println("Both files have errors!\n" + e1);
+							continue;
+						}
+
+					}
+				}
+			}
+		}
 	}
 	
 	private PublicKey getPubliKeyFromString(String publickey) throws NoSuchAlgorithmException, InvalidKeySpecException{
@@ -128,16 +185,16 @@ public class Storage {
 				objectMapper.writeValue(new FileOutputStream(Historyfilename), transactions);
 			}
 		} catch (JsonGenerationException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 	}
@@ -156,16 +213,16 @@ public class Storage {
 				objectMapper.writeValue(new FileOutputStream(Historyfilename), transactions);
 			}
 		} catch (JsonGenerationException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 		return senderTransactions;

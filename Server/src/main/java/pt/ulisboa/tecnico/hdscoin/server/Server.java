@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
-
-
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +37,7 @@ import java.rmi.server.UnicastRemoteObject;
 
 
 
-public class Server implements RemoteServerInterface {
+public class Server implements RemoteServerInterface{
 
 	
 	private Storage storage;
@@ -50,32 +50,12 @@ public class Server implements RemoteServerInterface {
  	private ConcurrentHashMap<PublicKey, String> clients;
  	
 	public Server() throws RemoteException, AlreadyBoundException {
-		
+		check();
 		connect();
 		
-		storage=new Storage();
+
 		try {
-			clients=storage.getClients();
-			for(String s:clients.values())
-				System.out.println("Client already registered: "+s);
-		} catch (JsonParseException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (JsonMappingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (NoSuchAlgorithmException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (InvalidKeySpecException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		try {
-			keyPairManager=new KeystoreManager( "/server.jks", "server123");
+			keyPairManager=new KeystoreManager("/server.jks", "server123");
 			serverKeyPair=keyPairManager.getKeyPair("server", "server123");
 			manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
 		}catch(Exception e) {
@@ -83,8 +63,34 @@ public class Server implements RemoteServerInterface {
 			e.printStackTrace();
 		}
 		crashFailure=false;
+
+	}
+	private void check(){
+		storage=new Storage();
+		storage.backupCheck();
+		try {
+			clients=storage.getClients();
+			for(String s:clients.values())
+				System.out.println("Client already registered: "+s);
+		} catch (JsonParseException e1) {
+
+			e1.printStackTrace();
+		} catch (JsonMappingException e1) {
+
+			e1.printStackTrace();
+		} catch (NoSuchAlgorithmException e1) {
+
+			e1.printStackTrace();
+		} catch (InvalidKeySpecException e1) {
+
+			e1.printStackTrace();
+		} catch (IOException e1) {
+
+			e1.printStackTrace();
+		}
 		
 	}
+
 	private void connect() throws RemoteException, AlreadyBoundException{
 		System.setProperty("java.rmi.server.hostname","127.0.0.1");
         
@@ -125,16 +131,22 @@ public class Server implements RemoteServerInterface {
 
 		System.out.println("Deciphering message");
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
-		
+
+
 		Message message = new Message(serverKeyPair.getPublic(), false);//case the client does not exist
 		if(storage.checkFileExists(clients.get(decipheredMessage.getSender()))){
 			Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
 			if(sender.sendBalance(decipheredMessage.getAmount())) {
 				Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination()));
-				//Transaction with id for pending
-				destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount()));
+				destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount(), manager.getDigitalSign(msg)));
+
+				//Write to file
 				storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
 				storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
+				//Write to backup file
+				storage.writeClientBackup(clients.get(decipheredMessage.getDestination()), destiny);
+				storage.writeClientBackup(clients.get(decipheredMessage.getSender()), sender);
+
 				message = new Message(serverKeyPair.getPublic(), true);
 			}
 		}
@@ -185,8 +197,9 @@ public class Server implements RemoteServerInterface {
 			if(decipheredMessage.getTransaction().myEquals(t)){
 				Ledger sender = storage.readClient(t.getSender());
 				destiny.receiveBalance(t.getAmount());
-				destiny.addTransfers(new Transaction(t.getSender(), t.getReceiver(), t.getAmount()));
-				sender.addTransfers(new Transaction(t.getSender(), t.getReceiver(), t.getAmount()));
+
+				destiny.addTransfers(t);
+				sender.addTransfers(t);
 				
 				//Write to file BUG
 				i.remove();

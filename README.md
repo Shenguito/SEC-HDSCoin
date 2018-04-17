@@ -28,3 +28,7 @@ To run the tests first run the server, then execute
 
 mvn test
 
+
+Bugs: negative value, transaction signature, crash server may cause file corruption.
+
+The 2nd stage's description is defined at SEC-1718Project-stage2.pdf

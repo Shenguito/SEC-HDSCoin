@@ -1,5 +1,7 @@
 package pt.ulisboa.tecnico.hdscoin.server;
 
+import pt.ulisboa.tecnico.hdscoin.interfaces.RemoteServerInterface;
+
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -23,6 +25,8 @@ public class ServerApplication {
 					server.setServerFault(true);
 				}else if(Integer.parseInt(option.trim())==2){
 					server.setServerFault(false);
+				}else{
+					System.out.println("\nThe '"+option+ "' is not a valid number!");
 				}
 			}
 		} catch (RemoteException e) {
@@ -30,6 +34,6 @@ public class ServerApplication {
 		} catch (AlreadyBoundException e) {
 			System.out.println("Already Bound");
 		}
-		
+
     }
 }

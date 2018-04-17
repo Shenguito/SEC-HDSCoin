@@ -91,6 +91,7 @@ public class Client {
 		
 		while(!success&&tentries<ATTEMPT){
         	try{
+        		
 	    		CipheredMessage response = serverInterfaces.send(cipheredMessage);
 	
 	            Message responseDeciphered = manager.decipherCipheredMessage(response);

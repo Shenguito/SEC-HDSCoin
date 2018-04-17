@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.hdscoin.Crypto;
+package pt.ulisboa.tecnico.hdscoin.crypto;
 
 import java.io.Serializable;
 
@@ -15,13 +15,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class CipheredMessage implements Serializable{
 
-	@JsonProperty("stringContent")
+	@JsonProperty("content")
     private String content;
-	@JsonProperty("stringIV")
+	@JsonProperty("IV")
     private String IV;
-	@JsonProperty("stringIntegrityCheck")
+	@JsonProperty("integrityCheck")
     private String integrityCheck;
-	@JsonProperty("stringKey")
+	@JsonProperty("key")
     private String key;
 	
 	public CipheredMessage(){
