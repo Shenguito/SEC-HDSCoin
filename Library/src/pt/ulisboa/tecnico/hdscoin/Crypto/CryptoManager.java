@@ -155,6 +155,22 @@ public class CryptoManager {
         }
         return deciphMsg;
     }
+    
+    public IntegrityCheck getDigitalSign(CipheredMessage message){
+    	
+    	try {
+    		SecretKey key = (SecretKey) fromBytes(CryptoUtil.asymDecipher(message.getKey(), privKey));
+	        byte[] decipheredContent = CryptoUtil.symDecipher(message.getContent(), message.getIV(), key);
+	        Message deciphMsg = (Message) fromBytes(decipheredContent);
+	        byte[] decipheredIntegrityBytes = CryptoUtil.symDecipher(message.getIntegrityCheck(), message.getIV(), key);
+	        IntegrityCheck check = (IntegrityCheck) fromBytes(decipheredIntegrityBytes);
+	    	return check;
+	    } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+	        e.printStackTrace();
+	        System.out.println("Decipher error...");
+	    }
+    	return null;
+    }
 
     /**
      * Calculates digital sign on the receiver end and compares with the one received

@@ -32,6 +32,8 @@ public class Storage {
 		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
 	
+	
+	
 	public Ledger readClient(String path) {
 		File file = new File(getFile(path));
 		Ledger ledger=null;
@@ -68,6 +70,24 @@ public class Storage {
 		}
 	}
 	
+	public synchronized void writeClientBackup(String path, Ledger ledger) {
+		try {
+			objectMapper.writeValue(new FileOutputStream(getBackupFile(path)), ledger);
+		} catch (JsonGenerationException e) {
+			
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			
+			e.printStackTrace();
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+	}
+	
 	public boolean checkFileExists(String name) {
 		File f = new File(getFile(name));
 		if(f.exists() && !f.isDirectory()) { 
@@ -78,6 +98,10 @@ public class Storage {
 	
 	private String getFile(String name) {
 		return "client"+File.separator+name+".json";
+	}
+	
+	private String getBackupFile(String name) {
+		return "backup"+File.separator+name+".json";
 	}
 	
 	private void removeClients(){
@@ -98,6 +122,37 @@ public class Storage {
 				
 		}
 		return allClients;
+	}
+	
+	public void backupCheck() {
+		
+		File file = new File("client");
+		if(file.isDirectory()) {
+			for(File f: file.listFiles()){
+				try {
+					Ledger ledger = objectMapper.readValue(f, Ledger.class);
+					try {
+						Ledger ledgerbackup = objectMapper.readValue(new File("backup"+File.separator+f.getName()), Ledger.class);
+						if(ledgerbackup.myEquals(ledger)){
+							continue;
+						}else{
+							writeClientBackup(f.getName(), ledger);
+						}
+					} catch (Exception e1) {
+						writeClientBackup(f.getName(), ledger);
+					}
+				} catch (Exception e) {
+					try {
+						Ledger ledgerbackup = objectMapper.readValue(new File("backup"+File.separator+f.getName()), Ledger.class);
+						writeClient(f.getName(), ledgerbackup);
+					} catch (Exception e1) {
+						System.out.println("Both files have errors!\n"+e1);
+						continue;
+					}
+					
+				}
+			}
+		}
 	}
 	
 	private PublicKey getPubliKeyFromString(String publickey) throws NoSuchAlgorithmException, InvalidKeySpecException{
