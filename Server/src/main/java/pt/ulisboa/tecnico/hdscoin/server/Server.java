@@ -44,6 +44,7 @@ public class Server implements RemoteServerInterface{
  	private KeystoreManager keyPairManager;
  	private KeyPair serverKeyPair;
  	private CryptoManager manager;
+ 	private int numInterface;
  	
  	private boolean crashFailure;
  	
@@ -103,6 +104,7 @@ public class Server implements RemoteServerInterface{
     	    registry = LocateRegistry.createRegistry(8000);
     	        
         	registry.bind("RemoteServerInterface1", stub);
+        	numInterface = 1;
         	System.out.println("ServerInterface ready");
         	return;
         }
@@ -111,7 +113,7 @@ public class Server implements RemoteServerInterface{
     	    registry = LocateRegistry.getRegistry(8000);
     	        
         	registry.bind(new String("RemoteServerInterface" + (RealNumS + 1)), stub);
-        	
+        	numInterface=RealNumS +1;
         	System.out.println("ServerInterface" + (RealNumS + 1) + " ready");
         
 	}

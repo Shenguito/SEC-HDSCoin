@@ -20,7 +20,11 @@ import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.rmi.Naming;
 import java.net.MalformedURLException;
 
@@ -181,33 +185,30 @@ public class Client {
 	public boolean check(String sendDestination) {
 		boolean success=false;
 		int tentries=0;
+		String checkedName="";
+		Map<Integer, List<Transaction>> transactions = new HashMap<Integer,List<Transaction>>();
+		Map<Integer, Double> amounts = new HashMap<Integer,Double>();
 			try {
 	            Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination));
 	            CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
 	            for(int i = 0; i < numServers()&&tentries<ATTEMPT; i++) {
 	            	success=false;
 	        		tentries=0;
-	        		System.out.println(i + "  aaaaaaaaaaaaaa");
 		            while(!success&&tentries<ATTEMPT){
 		            	try{
 		            		CipheredMessage response = servers.get(i).check(cipheredMessage);
 		            		Message responseDeciphered = manager.decipherCipheredMessage(response);
+		            		checkedName=responseDeciphered.getCheckedName();
 		            		
-		    	            System.out.println(responseDeciphered.getCheckedName() + "'s balance is: " + responseDeciphered.getAmount());
+		            		amounts.put(i, responseDeciphered.getAmount());
 		    	            if(responseDeciphered.getTransactions()!=null) {
-		    	            	if(responseDeciphered.getTransactions().size()==0) {
-		    	            		System.out.println(responseDeciphered.getCheckedName()+" has no pending transfer...");
-		    	            		success=true;
-		    	            	}
-		    		            System.out.println(responseDeciphered.getCheckedName()+"'s pending transfer(s) are:");
-		    		            pendingTransaction=new ArrayList<Transaction>();
-		    		            int id=0;
-		    		            for(Transaction t:responseDeciphered.getTransactions()) {
-		    		            	pendingTransaction.add(t);
-		    		            	id++;
-		    		            	System.out.println("id "+id+": \t"+t.toString());
-		    		            }
 		    		            success=true;
+		    		            pendingTransaction=new ArrayList<Transaction>();
+		    		            for(Transaction t:responseDeciphered.getTransactions()) 
+		    		            	pendingTransaction.add(t);
+		    		            if(pendingTransaction.size()!=0)
+		    		            	transactions.put(i, pendingTransaction);
+		    		            	
 		    	            }
 		    	            success=true;
 		            	} catch (RemoteException e) {
@@ -217,6 +218,24 @@ public class Client {
 		    	        	System.out.println("Invalid signature");
 		    	        	success=true;
 		    	        }
+		            }
+	            }
+	           
+	           Collection<Double> amount = amounts.values();
+	            if(Collections.frequency(amount, amount.iterator().next()) == amount.size())
+	            	System.out.println(checkedName + "'s balance is: " + amount.iterator().next());
+	            if(transactions.size()==0)
+            		System.out.println(checkedName+" has no pending transfer...");
+	            else if(transactions.size()!=7)
+	            	//or all responded or none 
+            		return false;
+	            else {
+	            	//Check if all are the same
+		            System.out.println(checkedName+"'s pending transfer(s) are:");
+		            int id=0;
+		            for(Transaction t:pendingTransaction) {
+		            	id++;
+		            	System.out.println("id "+id+": \t"+t.toString());
 		            }
 	            }
 	        } catch(Exception e){
