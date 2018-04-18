@@ -124,15 +124,15 @@ public class Storage {
 						if (ledgerbackup.myEquals(ledger)) {
 							continue;
 						} else {
-							System.out.println("Files differents...");
+							System.out.println("Backup File and Original File are differents. Backup File is rewrited ...");
 							writeClientBackup(f.getName(), ledger);
 						}
 					} catch (Exception e1) {
-						System.out.println("Backup File has error\n" + e1);
+						System.out.println("Backup File has error. It is rewrited\n" + e1);
 						writeClientBackup(f.getName(), ledger);
 					}
 				} catch (Exception e) {
-					System.out.println("Original File has error\n" + e);
+					System.out.println("Original File has error. It is rewrited\n" + e);
 					try {
 						Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
 						writeClient(f.getName(), ledgerbackup);

@@ -23,7 +23,7 @@ public class ClientApplication {
     		System.out.println("Select a number to init:");
     		System.out.println("1-Alice");
     		System.out.println("2-Bob.");
-    		System.out.println("3-Charly.");
+    		System.out.println("3-Charlie.");
     		String userNumer = reader.nextLine();
     		try {
 	            switch (userNumer.trim()) {
@@ -31,7 +31,7 @@ public class ClientApplication {
 	                         break;
 	                case "2":  client=new Client(host, "bob", "bob123");
 	                         break;
-	                case "3":  client=new Client(host, "charly", "charly123");
+	                case "3":  client=new Client(host, "charlie", "charlie123");
 	                		break;
 	                default: System.out.println("\nThe '"+userNumer+ "' is not a valid number!");
 	                		continue;
@@ -75,7 +75,7 @@ public class ClientApplication {
 			        		else{
 				        		System.out.println("Amount:");
 				        		String sendAmount = reader.nextLine();
-				        		System.out.println("Destination (Available: Alice Bob Charly; you are "+client.getClientName().toUpperCase()+"):");
+				        		System.out.println("Destination (Available: Alice Bob Charlie; you are "+client.getClientName().toUpperCase()+"):");
 				        		String sendDestination = reader.nextLine();
 				        		client.send(sendDestination, sendAmount);
 			        		}
@@ -89,7 +89,13 @@ public class ClientApplication {
 			    			while(!receiveExit){
 			    				System.out.println("Choose pending transfer:\n0-back.");
 				    			String pendingTransfer = reader.nextLine();
-				    			int chosenNumber=Integer.parseInt(pendingTransfer.trim());
+				    			int chosenNumber=-1;
+				    			try{
+				    				chosenNumber=Integer.parseInt(pendingTransfer.trim());
+				    			}catch(Exception e){
+				    				System.out.println("'"+pendingTransfer.trim()+"'"+" is not correct!");
+				    				continue;
+				    			}
 				    			if(chosenNumber==0){
 				    				receiveExit=true;
 				    				continue;

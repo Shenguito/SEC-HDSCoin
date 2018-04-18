@@ -49,7 +49,7 @@ public class Client {
 		this.clientName=clientName.toLowerCase().trim();
 		connect();
 		try {
-			keyPairManager=new KeystoreManager("/" + clientName.trim().toLowerCase()+".jks", password);
+			keyPairManager=new KeystoreManager("/"+clientName.trim().toLowerCase()+".jks", password);
 			clientKeyPair=keyPairManager.getKeyPair(clientName.trim().toLowerCase(), password);
 			manager = new CryptoManager(clientKeyPair.getPublic(), clientKeyPair.getPrivate(), keyPairManager);
 		}catch(Exception e) {
