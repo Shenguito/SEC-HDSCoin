@@ -37,6 +37,8 @@ public class LastSentMessage {
 	
 	public synchronized void writeLastSentMessage(String client, CipheredMessage message) {
 		try {
+			File yourFile = new File(getFile(client));
+			yourFile.createNewFile();
 			objectMapper.writeValue(new FileOutputStream(getFile(client)), message);
 		} catch (JsonGenerationException e) {
 			
@@ -72,6 +74,10 @@ public class LastSentMessage {
 	}
 	
 	private String getFile(String name) {
-		return "lastMessage"+File.separator+name+".json";
+		File file = new File("lastMessage");
+		if (!file.exists()) {
+		      file.mkdirs();
+	    }
+		return "lastMessage"+File.separator+name;
 	}
 }

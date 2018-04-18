@@ -3,7 +3,6 @@ package pt.ulisboa.tecnico.hdscoin.ClientTests;
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertTrue;
 
-import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
@@ -22,8 +21,6 @@ public class ClientTest {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
 			e.printStackTrace();
-		}catch(MalformedURLException e) {
-			e.printStackTrace();
 		}
 	}
 	@Test
@@ -39,8 +36,6 @@ public class ClientTest {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
 			fail("Not yet implemented");
-			e.printStackTrace();
-		}catch(MalformedURLException e) {
 			e.printStackTrace();
 		}
 	}
@@ -61,8 +56,6 @@ public class ClientTest {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
 			fail("Not yet implemented");
-			e.printStackTrace();
-		}catch(MalformedURLException e) {
 			e.printStackTrace();
 		}
 	}
@@ -89,8 +82,6 @@ public class ClientTest {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
 			fail("Not yet implemented");
-			e.printStackTrace();
-		}catch(MalformedURLException e) {
 			e.printStackTrace();
 		}
 	}
@@ -120,8 +111,6 @@ public class ClientTest {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
 			fail("Not yet implemented");
-			e.printStackTrace();
-		}catch(MalformedURLException e) {
 			e.printStackTrace();
 		}
 	}

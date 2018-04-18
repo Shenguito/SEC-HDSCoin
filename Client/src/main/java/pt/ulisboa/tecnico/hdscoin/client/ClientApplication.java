@@ -7,9 +7,6 @@ import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.net.MalformedURLException;
-
-import com.sun.org.apache.xerces.internal.util.URI.MalformedURIException;
 
 
 
@@ -44,10 +41,6 @@ public class ClientApplication {
     			initing=true;
     			continue;
     		}catch(NotBoundException e) {
-    			System.out.println("\nServer not bound.");
-    			initing=true;
-    			continue;
-    		}catch(MalformedURLException e) {
     			System.out.println("\nServer not bound.");
     			initing=true;
     			continue;

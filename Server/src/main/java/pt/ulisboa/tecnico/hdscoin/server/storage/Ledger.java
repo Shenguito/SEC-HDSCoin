@@ -95,9 +95,10 @@ public class Ledger implements Serializable{
 	public boolean myEquals(Ledger obj) {
 		if(publicKey.equals(obj.getPublicKey())&&
 				balance==obj.getBalance()&&
-				transfers.equals(obj.getTransfers())&&
-				pendingTransfers.equals(obj.getPendingTransfers()))
+				transfers.size()==obj.getTransfers().size()&&
+				pendingTransfers.size()==obj.getPendingTransfers().size()){
 			return true;
+		}
 	    return false;
 	}
 

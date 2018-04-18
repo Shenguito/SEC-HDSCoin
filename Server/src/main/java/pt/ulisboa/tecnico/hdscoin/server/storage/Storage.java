@@ -41,52 +41,31 @@ public class Storage {
 		try {
 			ledger = objectMapper.readValue(file, Ledger.class);
 		} catch (JsonParseException e) {
-			
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (JsonMappingException e) {
-			
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		return ledger;
 	}
 	
-	public synchronized void writeClient(String path, Ledger ledger) {
-		try {
-			objectMapper.writeValue(new FileOutputStream(getFile(path)), ledger);
-		} catch (JsonGenerationException e) {
-			
-			e.printStackTrace();
-		} catch (JsonMappingException e) {
-			
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			
-			e.printStackTrace();
-		} catch (IOException e) {
-			
-			e.printStackTrace();
-		}
+	public synchronized void writeClient(String path, Ledger ledger) throws JsonGenerationException, JsonMappingException, FileNotFoundException, IOException {
+		File yourFile = new File(getFile(path));
+		yourFile.createNewFile();
+		objectMapper.writeValue(new FileOutputStream(getFile(path)), ledger);
+		
 	}
 	
-	public synchronized void writeClientBackup(String path, Ledger ledger) {
-		try {
-			objectMapper.writeValue(new FileOutputStream(getBackupFile(path)), ledger);
-		} catch (JsonGenerationException e) {
-			
-			e.printStackTrace();
-		} catch (JsonMappingException e) {
-			
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			
-			e.printStackTrace();
-		} catch (IOException e) {
-			
-			e.printStackTrace();
-		}
+	public synchronized void writeClientBackup(String path, Ledger ledger) throws JsonGenerationException, JsonMappingException, FileNotFoundException, IOException {
+		File yourFile = new File(getBackupFile(path));
+		yourFile.createNewFile();
+		objectMapper.writeValue(new FileOutputStream(getBackupFile(path)), ledger);
+		
 	}
 	
 	public boolean checkFileExists(String name) {
@@ -98,11 +77,19 @@ public class Storage {
 	}
 	
 	private String getFile(String name) {
-		return "Server" + File.separator + "client"+File.separator+name;
+		File file = new File("client");
+		if (!file.exists()) {
+		      file.mkdirs();
+	    }
+		return "client"+File.separator+name;
 	}
 	
 	private String getBackupFile(String name) {
-		return "Server" + File.separator + "backup"+File.separator+name;
+		File file = new File("backup");
+		if (!file.exists()) {
+		      file.mkdirs();
+	    }
+		return "backup"+File.separator+name;
 	}
 	
 	private void removeClients(){
@@ -118,7 +105,6 @@ public class Storage {
 		File file = new File("client");
 		if(file.isDirectory()) {
 			for(File f: file.listFiles()){
-				if(f.getName().contains("json"))
 				allClients.put(getPubliKeyFromString(objectMapper.readValue(f, Ledger.class).getPublicKey()), f.getName().split(".json")[0].trim());
 			}
 				
@@ -131,28 +117,28 @@ public class Storage {
 		File file = new File("client");
 		if(file.isDirectory()) {
 			for(File f: file.listFiles()){
-				if(f.getName().contains("json")) {
+				try {
+					Ledger ledger = objectMapper.readValue(f, Ledger.class);
 					try {
-						Ledger ledger = objectMapper.readValue(f, Ledger.class);
-						try {
-							Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
-							if (ledgerbackup.myEquals(ledger)) {
-								continue;
-							} else {
-								writeClientBackup(f.getName(), ledger);
-							}
-						} catch (Exception e1) {
+						Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
+						if (ledgerbackup.myEquals(ledger)) {
+							continue;
+						} else {
+							System.out.println("Files differents...");
 							writeClientBackup(f.getName(), ledger);
 						}
-					} catch (Exception e) {
-						try {
-							Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
-							writeClient(f.getName(), ledgerbackup);
-						} catch (Exception e1) {
-							System.out.println("Both files have errors!\n" + e1);
-							continue;
-						}
-
+					} catch (Exception e1) {
+						System.out.println("Backup File has error\n" + e1);
+						writeClientBackup(f.getName(), ledger);
+					}
+				} catch (Exception e) {
+					System.out.println("Original File has error\n" + e);
+					try {
+						Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
+						writeClient(f.getName(), ledgerbackup);
+					} catch (Exception e1) {
+						System.out.println("Both files have errors!\n" + e1);
+						continue;
 					}
 				}
 			}
@@ -166,68 +152,5 @@ public class Storage {
         RSAPublicKey pubKey = (RSAPublicKey) kf.generatePublic(keySpecX509);
         return pubKey;
 	}
-	
-	
-	
-	/*
-
-	public void writeTransaction(String sender, String receiver, double amount) {
-		File f = new File(Historyfilename);
-		
-		try {
-			if(f.exists() && !f.isDirectory()) {
-				List<Transaction> transactions = objectMapper.readValue(Historyfilename, new TypeReference<List<Transaction>>(){});
-				transactions.add(new Transaction(transactions.size()+1, sender, receiver, amount));
-				objectMapper.writeValue(new FileOutputStream(Historyfilename), transactions);
-			}else {
-				List<Transaction> transactions=new ArrayList<Transaction>();
-				transactions.add(new Transaction(1, sender, receiver, amount));
-				objectMapper.writeValue(new FileOutputStream(Historyfilename), transactions);
-			}
-		} catch (JsonGenerationException e) {
-			
-			e.printStackTrace();
-		} catch (JsonMappingException e) {
-			
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			
-			e.printStackTrace();
-		} catch (IOException e) {
-			
-			e.printStackTrace();
-		}
-	}
-	
-	public List<Transaction> getTransactionBySender(String sender){
-		File f = new File(Historyfilename);
-		List<Transaction> senderTransactions=new ArrayList<Transaction>();
-		try {
-			if(f.exists() && !f.isDirectory()) {
-				List<Transaction> transactions = objectMapper.readValue(Historyfilename, new TypeReference<List<Transaction>>(){});
-				for(Transaction t:transactions) {
-					if(t.getSender().equals(sender)||t.getReceiver().equals(sender)) {
-						senderTransactions.add(t);
-					}
-				}
-				objectMapper.writeValue(new FileOutputStream(Historyfilename), transactions);
-			}
-		} catch (JsonGenerationException e) {
-			
-			e.printStackTrace();
-		} catch (JsonMappingException e) {
-			
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			
-			e.printStackTrace();
-		} catch (IOException e) {
-			
-			e.printStackTrace();
-		}
-		return senderTransactions;
-	}
-	*/
-	
 	
 }

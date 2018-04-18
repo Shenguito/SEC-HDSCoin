@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdscoin.server;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
@@ -27,6 +28,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
@@ -44,7 +46,6 @@ public class Server implements RemoteServerInterface{
  	private KeystoreManager keyPairManager;
  	private KeyPair serverKeyPair;
  	private CryptoManager manager;
- 	private int numInterface;
  	
  	private boolean crashFailure;
  	
@@ -53,8 +54,6 @@ public class Server implements RemoteServerInterface{
 	public Server() throws RemoteException, AlreadyBoundException {
 		check();
 		connect();
-		
-
 		try {
 			keyPairManager=new KeystoreManager("/server.jks", "server123");
 			serverKeyPair=keyPairManager.getKeyPair("server", "server123");
@@ -94,27 +93,14 @@ public class Server implements RemoteServerInterface{
 
 	private void connect() throws RemoteException, AlreadyBoundException{
 		System.setProperty("java.rmi.server.hostname","127.0.0.1");
-		RemoteServerInterface stub;
-		Registry registry;
-		int RealNumS = 0;
-        try{
-        	RealNumS = LocateRegistry.getRegistry(8000).list().length;
-        }catch(RemoteException e){
-        	stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
-    	    registry = LocateRegistry.createRegistry(8000);
-    	        
-        	registry.bind("RemoteServerInterface1", stub);
-        	numInterface = 1;
-        	System.out.println("ServerInterface ready");
-        	return;
-        }
-        System.out.println(RealNumS);
-        	stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
-    	    registry = LocateRegistry.getRegistry(8000);
-    	        
-        	registry.bind(new String("RemoteServerInterface" + (RealNumS + 1)), stub);
-        	numInterface=RealNumS +1;
-        	System.out.println("ServerInterface" + (RealNumS + 1) + " ready");
+        
+        
+        RemoteServerInterface stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
+        Registry registry = LocateRegistry.createRegistry(1099);
+        // Bind the remote object's stub in the registry
+        registry.bind("RemoteServerInterface", stub);
+
+        System.out.println("ServerInterface ready");
         
 	}
 	
@@ -124,7 +110,23 @@ public class Server implements RemoteServerInterface{
 			throw new RemoteException();
 		
 		if(!storage.checkFileExists(clientName)){
-			storage.writeClient(clientName, new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>()));
+			try {
+				Ledger ledger=new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>());
+				storage.writeClient(clientName, ledger);
+				storage.writeClientBackup(clientName, ledger);
+			} catch (JsonGenerationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (JsonMappingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}else {
 			System.out.println("User already registered!");
 		}
@@ -147,7 +149,7 @@ public class Server implements RemoteServerInterface{
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
 
-		Message message = new Message(serverKeyPair.getPublic(), false);//case the client does not exist
+		Message message = new Message(serverKeyPair.getPublic(), false); //case the client does not exist
 		if(storage.checkFileExists(clients.get(decipheredMessage.getSender()))){
 			Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
 			if(sender.sendBalance(decipheredMessage.getAmount())) {
@@ -155,12 +157,25 @@ public class Server implements RemoteServerInterface{
 				destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount(), manager.getDigitalSign(msg)));
 
 				//Write to file
-				storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
-				storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
-				//Write to backup file
-				storage.writeClientBackup(clients.get(decipheredMessage.getDestination()), destiny);
-				storage.writeClientBackup(clients.get(decipheredMessage.getSender()), sender);
-
+				try {
+					storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
+					storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
+					//Write to backup file
+					storage.writeClientBackup(clients.get(decipheredMessage.getDestination()), destiny);
+					storage.writeClientBackup(clients.get(decipheredMessage.getSender()), sender);
+				} catch (JsonGenerationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (JsonMappingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				message = new Message(serverKeyPair.getPublic(), true);
 			}
 		}
@@ -217,9 +232,23 @@ public class Server implements RemoteServerInterface{
 				
 				//Write to file BUG
 				i.remove();
-				storage.writeClient(t.getSender(), sender);
-				storage.writeClient(t.getReceiver(), destiny);
-				break;
+				try {
+					storage.writeClient(t.getSender(), sender);
+					storage.writeClient(t.getReceiver(), destiny);
+					break;
+				} catch (JsonGenerationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (JsonMappingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		
