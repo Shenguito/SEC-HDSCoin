@@ -1,2 +1,4 @@
-C:\Users\ggarc_000\IdeaProjects\SEC-HDSCoin\Server\src\pt\ulisboa\tecnico\hdscoin\server\ServerInterface.java
-C:\Users\ggarc_000\IdeaProjects\SEC-HDSCoin\Server\src\pt\ulisboa\tecnico\hdscoin\server\Main.java
+/home/goncalo/sec/SEC-HDSCoin/Server/src/main/java/pt/ulisboa/tecnico/hdscoin/server/storage/Storage.java
+/home/goncalo/sec/SEC-HDSCoin/Server/src/main/java/pt/ulisboa/tecnico/hdscoin/server/ServerApplication.java
+/home/goncalo/sec/SEC-HDSCoin/Server/src/main/java/pt/ulisboa/tecnico/hdscoin/server/Server.java
+/home/goncalo/sec/SEC-HDSCoin/Server/src/main/java/pt/ulisboa/tecnico/hdscoin/server/storage/Ledger.java

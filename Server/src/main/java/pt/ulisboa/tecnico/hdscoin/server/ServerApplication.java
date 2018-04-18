@@ -9,22 +9,28 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Scanner;
 
+import java.util.List;
+import java.util.ArrayList;
+
 public class ServerApplication {
 
 	public static void main(String args[]) {
 		
+		List<Server> servers = new ArrayList<Server>();
+		int NUMSERVERS = 7;
 
 		try {
-			Server server = new Server();
+			for(int i = 0; i < NUMSERVERS ; i++)
+				servers.add(new Server());
 			Scanner reader = new Scanner(System.in);
 			while(true){
 				System.out.println("1-crash");
 				System.out.println("2-recover");
 				String option=reader.nextLine();
 				if(Integer.parseInt(option.trim())==1){
-					server.setServerFault(true);
+					servers.get(0).setServerFault(true);
 				}else if(Integer.parseInt(option.trim())==2){
-					server.setServerFault(false);
+					servers.get(0).setServerFault(false);
 				}else{
 					System.out.println("\nThe '"+option+ "' is not a valid number!");
 				}

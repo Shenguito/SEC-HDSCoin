@@ -93,14 +93,26 @@ public class Server implements RemoteServerInterface{
 
 	private void connect() throws RemoteException, AlreadyBoundException{
 		System.setProperty("java.rmi.server.hostname","127.0.0.1");
-        
-        
-        RemoteServerInterface stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
-        Registry registry = LocateRegistry.createRegistry(1099);
-        // Bind the remote object's stub in the registry
-        registry.bind("RemoteServerInterface", stub);
-
-        System.out.println("ServerInterface ready");
+		RemoteServerInterface stub;
+		Registry registry;
+		int RealNumS = 0;
+        try{
+        	RealNumS = LocateRegistry.getRegistry(8000).list().length;
+        }catch(RemoteException e){
+        	stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
+    	    registry = LocateRegistry.createRegistry(8000);
+    	        
+        	registry.bind("RemoteServerInterface1", stub);
+        	System.out.println("ServerInterface ready");
+        	return;
+        }
+        System.out.println(RealNumS);
+        	stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
+    	    registry = LocateRegistry.getRegistry(8000);
+    	        
+        	registry.bind(new String("RemoteServerInterface" + (RealNumS + 1)), stub);
+        	
+        	System.out.println("ServerInterface" + (RealNumS + 1) + " ready");
         
 	}
 	
