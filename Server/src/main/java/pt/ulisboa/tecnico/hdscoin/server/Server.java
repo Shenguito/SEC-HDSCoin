@@ -51,22 +51,24 @@ public class Server implements RemoteServerInterface{
  	
  	private ConcurrentHashMap<PublicKey, String> clients;
  	
-	public Server() throws RemoteException, AlreadyBoundException {
+	public Server(int number) throws RemoteException, AlreadyBoundException {
+		String server="server"+number;
+		storage=new Storage(server);
 		check();
-		connect();
+		connect(server);
 		try {
 			keyPairManager=new KeystoreManager("/server.jks", "server123");
+			//TODOSERVERKEY using only one key
 			serverKeyPair=keyPairManager.getKeyPair("server1", "server1123");
+			//serverKeyPair=keyPairManager.getKeyPair("server"+number, "server"+number+"123");
 			manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
 		}catch(Exception e) {
 			System.out.println("KeyPair Error");
 			e.printStackTrace();
 		}
 		crashFailure=false;
-
 	}
 	private void check(){
-		storage=new Storage();
 		storage.backupCheck();
 		try {
 			clients=storage.getClients();
@@ -91,9 +93,30 @@ public class Server implements RemoteServerInterface{
 		
 	}
 
-	private void connect() throws RemoteException, AlreadyBoundException{
+	private void connect(String server) throws RemoteException, AlreadyBoundException{
 		System.setProperty("java.rmi.server.hostname","127.0.0.1");
-        
+		RemoteServerInterface stub;
+		Registry registry;
+		int RealNumS = 0;
+        try{
+        	RealNumS = LocateRegistry.getRegistry(8000).list().length;
+        }catch(RemoteException e){
+        	stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
+    	    registry = LocateRegistry.createRegistry(8000);
+    	        
+        	registry.bind("RemoteServerInterface1", stub);
+        	System.out.println("ServerInterface1 ready");
+        	return;
+        }
+        System.out.println(RealNumS);
+        	stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
+    	    registry = LocateRegistry.getRegistry(8000);
+    	        
+        	registry.bind(new String("RemoteServerInterface" + (RealNumS + 1)), stub);
+        	
+        	System.out.println("ServerInterface" + (RealNumS + 1) + " ready");
+		/*
+		System.setProperty("java.rmi.server.hostname","127.0.0.1");
         
         RemoteServerInterface stub = (RemoteServerInterface) UnicastRemoteObject.exportObject(this, 0);
         Registry registry = LocateRegistry.createRegistry(1099);
@@ -101,10 +124,10 @@ public class Server implements RemoteServerInterface{
         registry.bind("RemoteServerInterface", stub);
 
         System.out.println("ServerInterface ready");
-        
+        */
 	}
 	
-	public PublicKey register(String clientName, PublicKey publickey) throws RemoteException {
+	public void register(String clientName, PublicKey publickey) throws RemoteException {
 		
 		if(isServerCrashed())
 			throw new RemoteException();
@@ -134,9 +157,6 @@ public class Server implements RemoteServerInterface{
 			clients.put(publickey, clientName);
 			System.out.println("Test-> reading "+clientName+" file:\n"+storage.readClient(clientName).toString());
 		}
-		
-		
-		return manager.getPublicKey();
 	}
 	
 	//PublicKey source, PublicKey destination, int amount

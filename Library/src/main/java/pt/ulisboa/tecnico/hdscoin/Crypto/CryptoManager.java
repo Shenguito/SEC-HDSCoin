@@ -290,5 +290,9 @@ public class CryptoManager {
     public PrivateKey getPrivateKey() {
     	return privKey;
     }
+    
+    public PublicKey getPublicKeyBy(String alias) throws Exception{
+    	return keyPairManager.getPublicKeyByName(alias);
+    }
 
 }

@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdscoin.client;
 
+import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -44,7 +45,11 @@ public class ClientApplication {
     			System.out.println("\nServer not bound.");
     			initing=true;
     			continue;
-    		}
+    		} catch (MalformedURLException e) {
+    			System.out.println("\nLookup problem.");
+    			initing=true;
+    			continue;
+			}
     		exit=false;
 	    	while(!exit) {
 	    		

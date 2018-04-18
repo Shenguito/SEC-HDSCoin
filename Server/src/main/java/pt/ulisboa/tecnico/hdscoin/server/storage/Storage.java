@@ -25,10 +25,15 @@ import pt.ulisboa.tecnico.hdscoin.server.storage.Ledger;
 
 public class Storage {
 	private ObjectMapper objectMapper;
-	
-	public Storage() {
+	private String serverStorage;
+	public Storage(String server) {
 		//Remove clients' files
 		//removeClients();
+		File file = new File(server);
+		if (!file.exists()) {
+		      file.mkdirs();
+	    }
+		serverStorage=server;
 		objectMapper = new ObjectMapper();
 		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
@@ -77,19 +82,19 @@ public class Storage {
 	}
 	
 	private String getFile(String name) {
-		File file = new File("client");
+		File file = new File(serverStorage+File.separator+"client");
 		if (!file.exists()) {
 		      file.mkdirs();
 	    }
-		return "client"+File.separator+name;
+		return serverStorage+File.separator+"client"+File.separator+name;
 	}
 	
 	private String getBackupFile(String name) {
-		File file = new File("backup");
+		File file = new File(serverStorage+File.separator+"backup");
 		if (!file.exists()) {
 		      file.mkdirs();
 	    }
-		return "backup"+File.separator+name;
+		return serverStorage+File.separator+"backup"+File.separator+name;
 	}
 	
 	private void removeClients(){
