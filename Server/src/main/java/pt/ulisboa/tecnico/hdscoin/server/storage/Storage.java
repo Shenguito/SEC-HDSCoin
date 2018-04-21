@@ -108,6 +108,9 @@ public class Storage {
 	public ConcurrentHashMap<PublicKey, String> getClients() throws JsonParseException, JsonMappingException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
 		ConcurrentHashMap<PublicKey, String> allClients=new ConcurrentHashMap<PublicKey, String>();
 		File file = new File("client");
+		if (!file.canRead()) {
+			   file.setReadable(true);
+			}
 		if(file.isDirectory()) {
 			for(File f: file.listFiles()){
 				allClients.put(getPubliKeyFromString(objectMapper.readValue(f, Ledger.class).getPublicKey()), f.getName().split(".json")[0].trim());
