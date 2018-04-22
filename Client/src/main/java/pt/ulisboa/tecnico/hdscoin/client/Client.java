@@ -152,7 +152,7 @@ public class Client {
             	System.out.println("ServerKey is null");
             CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
             
-            for(int i = 0; i < numServers()&&tentries<ATTEMPT; i++) {
+            for(int i = 0; i < numServers(); i++) {
             	boolean success=false;
 	            while(!success&&tentries<ATTEMPT){
 	            	try{
@@ -190,34 +190,37 @@ public class Client {
 	            Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination));
 	            CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
 	            
-	            for(int i = 0; i < numServers()&&tentries<ATTEMPT; i++) {
+	            for(int i = 0; i < numServers(); i++) {
 	            	boolean success=false;
 		            while(!success&&tentries<ATTEMPT){
 		            	try{
 		            		CipheredMessage response = servers.get(i).check(cipheredMessage);
 		            		Message responseDeciphered = manager.decipherCipheredMessage(response);
-		            		if(responseDeciphered.getCheckedName().equals(null)){
-		            			//TODO case user does not exists
-		            			System.out.println("User does not exists....");
-		            			success=true;
-		            			continue;
-		            		}
-		    	            System.out.println(responseDeciphered.getCheckedName() + "'s balance is: " + responseDeciphered.getAmount());
-		    	            if(responseDeciphered.getTransactions()!=null) {
-		    	            	if(responseDeciphered.getTransactions().size()==0) {
-		    	            		System.out.println(responseDeciphered.getCheckedName()+" has no pending transfer...");
-		    	            		success = true;
-		    	            		continue;
-		    	            	}
-		    		            System.out.println(responseDeciphered.getCheckedName()+"'s pending transfer(s) are:");
-		    		            pendingTransaction=new ArrayList<Transaction>();
-		    		            int id=0;
-		    		            for(Transaction t:responseDeciphered.getTransactions()) {
-		    		            	pendingTransaction.add(t);
-		    		            	id++;
-		    		            	System.out.println("id "+id+": \t"+t.toString());
-		    		            }
-		    	            }
+		            		
+		            		try {
+		            			if(responseDeciphered.getCheckedName()==null) {
+		            				throw new Exception();
+		            			}
+			    	            System.out.println(responseDeciphered.getCheckedName() + "'s balance is: " + responseDeciphered.getAmount());
+			    	            if(responseDeciphered.getTransactions()!=null) {
+			    	            	if(responseDeciphered.getTransactions().size()==0) {
+			    	            		System.out.println(responseDeciphered.getCheckedName()+" has no pending transfer...");
+			    	            		success = true;
+			    	            		continue;
+			    	            	}
+			    		            System.out.println(responseDeciphered.getCheckedName()+"'s pending transfer(s) are:");
+			    		            pendingTransaction=new ArrayList<Transaction>();
+			    		            int id=0;
+			    		            for(Transaction t:responseDeciphered.getTransactions()) {
+			    		            	pendingTransaction.add(t);
+			    		            	id++;
+			    		            	System.out.println("id "+id+": \t"+t.toString());
+			    		            }
+			    	            }
+		    	            }catch(Exception e){
+		    		        	System.out.println("User does not existed...");
+		    		        }
+		            		
 		    	            success= true;
 				            continue;
 		            	} catch (RemoteException e) {
@@ -232,6 +235,7 @@ public class Client {
 	            }
 	        } catch(Exception e){
 	        	System.out.println("Invalid message");
+	        	e.printStackTrace();
 	        	return false;
 	        }
 		return false;
@@ -259,7 +263,6 @@ public class Client {
 	            while(!success&&tentries<ATTEMPT){
 	            	try{
 			            CipheredMessage response = servers.get(i).receive(cipheredMessage);
-	
 			            Message responseDeciphered = manager.decipherCipheredMessage(response);
 			            System.out.println("Success: " + responseDeciphered.isConfirm());
 			            success= true;
