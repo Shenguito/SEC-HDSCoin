@@ -58,7 +58,7 @@ public class Server implements RemoteServerInterface{
 		connect(server);
 		try {
 			keyPairManager=new KeystoreManager("/server.jks", "server123");
-			//TODOSERVERKEY using only one key
+			//TODO SERVERKEY using only one key
 			serverKeyPair=keyPairManager.getKeyPair("server1", "server1123");
 			//serverKeyPair=keyPairManager.getKeyPair("server"+number, "server"+number+"123");
 			manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
