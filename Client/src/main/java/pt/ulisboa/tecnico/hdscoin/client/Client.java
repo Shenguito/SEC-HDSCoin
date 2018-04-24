@@ -28,7 +28,7 @@ import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
 public class Client {
 
-	private static final int ATTEMPT=1;
+	
     private List<Transaction> pendingTransaction;
     
     private CryptoManager manager;
@@ -38,7 +38,6 @@ public class Client {
  	private String clientName;
     private PublicKey serverPublicKey;
     
-    private LastSentMessage lastSentMessage;
     private List<RemoteServerInterface> servers;
     //private HashMap<RemoteServerInterface, PublicKey> servers;
     
@@ -57,7 +56,6 @@ public class Client {
 			System.out.println("KeyPair Error");
 			e.printStackTrace();
 		}
-		lastSentMessage=new LastSentMessage();
 		pendingTransaction=new ArrayList<Transaction>();
 		System.out.println("Welcome "+clientName+"!");
 	}
@@ -81,161 +79,116 @@ public class Client {
 	}
 
 	public boolean register() {
-		int tentries=0;
-		boolean success=false;
-		for(int i = 0; i < numServers()&&tentries<ATTEMPT; i++) {
-			success=false;
-			tentries=0;
-			while(!success&&tentries<ATTEMPT){
-				try {
-					servers.get(i).register(clientName, manager.getPublicKey());
-					//TODOSERVERKEY using only one key
-					try {
-						serverPublicKey=manager.getPublicKeyBy("server1");
-					} catch (Exception e) {
-						System.out.println("publickey error");
-						e.printStackTrace();
-					}
-		            
-		            success= true;
-		            continue;
-		        } catch (RemoteException e) {
-		        	System.out.println("Connection fail...");
-		        	tentries++;
-		        }
-			}
-		}
-		if(success)
-			System.out.println("You are registered!");
-		return success;
-		
-		
-	}
-	public synchronized boolean reSend(){
-		
-		int tentries=0;
-		boolean success=false;
-		CipheredMessage cipheredMessage=lastSentMessage.readLastSentMessage(clientName);
+
+
 		for(int i = 0; i < numServers(); i++) {
-			tentries=0;
-			success=false;
-			while(!success&&tentries<ATTEMPT){
-	        	try{
-	        		
-		    		CipheredMessage response = servers.get(i).send(cipheredMessage);
-		
-		            Message responseDeciphered = manager.decipherCipheredMessage(response);
-		
-		            System.out.println("Success from server " + (i+1) + ": " + responseDeciphered.isConfirm());
-		            lastSentMessage.removeLastSentMessage(clientName);
-		            success= true;
-		            continue;
-	            } catch (RemoteException e) {
-		        	System.out.println("Connection fail...");
-		        	tentries++;
-		        }catch(IllegalStateException e){
-		        	System.out.println("The message is already sent");
-		        	success= true;
-		            continue;
-		        }
-			}
-        }
-        return success;
-	}
-	public synchronized boolean send(String sendDestination, String sendAmount) {
-		//just in case
-		if(lastSentMessage.checkFileExists(clientName)){
-			return reSend();
+
+			try {
+				servers.get(i).register(clientName, manager.getPublicKey());
+				//TODOSERVERKEY using only one key
+				try {
+					serverPublicKey=manager.getPublicKeyBy("server1");
+				} catch (Exception e) {
+					System.out.println("publickey error");
+					e.printStackTrace();
+				}
+	            
+				System.out.println("You are registered by server["+(i+1)+"]");
+				
+	        } catch (RemoteException e) {
+	        	System.out.println("Connection fail...");
+	        	System.out.println("Server["+(i+1)+"] connection failed");
+	        }
+			
 		}
-		
-		int tentries=0;
-		boolean success=false;
+		return true;
+	}
+	
+	public synchronized boolean send(String sendDestination, String sendAmount) {
+		if(getClientName().toUpperCase().equals(sendDestination.toUpperCase())) {
+			System.out.println("'"+sendDestination +"'? There is a bit probability being you, don't try to send money to yourself ;)");
+			return true;
+		}
 		try {
             Message msg = new Message(Double.parseDouble(sendAmount.trim()), manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination)); //SERVER_key represents sendDestination
             if(serverPublicKey==null)
             	System.out.println("ServerKey is null");
+            
             CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
             List<Boolean> awnsers = new ArrayList<Boolean>();
             
-            for(int i = 0; i < numServers()&&tentries<ATTEMPT; i++) {
-            	
-            	tentries=0;
-        		success=false;
-	            while(!success&&tentries<ATTEMPT){
-	            	try{
-	            		
-		        		CipheredMessage response = servers.get(i).send(cipheredMessage);
-			
-			            Message responseDeciphered = manager.decipherCipheredMessage(response);
-			            awnsers.add(responseDeciphered.isConfirm());
-			            System.out.println("Success from server " + (i+1) + ": " + responseDeciphered.isConfirm());
-			            success= true;
-			            continue;
-		            } catch (RemoteException e) {
-			        	System.out.println("Connection fail...");
-			        	tentries++;
-			        }catch(IllegalStateException e){
-			        	System.out.println("Invalid signature");
-			        	success= true;
-			            continue;
-			        }
-	            }
+            for(int i = 0; i < numServers(); i++) {
+            	try{
+	        		CipheredMessage response = servers.get(i).send(cipheredMessage);
+		
+		            Message responseDeciphered = manager.decipherCipheredMessage(response);
+		            awnsers.add(responseDeciphered.isConfirm());
+		            System.out.println("Success from server " + (i+1) + ": " + responseDeciphered.isConfirm());
+
+	            } catch (RemoteException e) {
+		        	System.out.println("Connection fail...");
+
+		        }catch(IllegalStateException e){
+		        	System.out.println("Invalid signature");
+
+		        }
+	            
             }
             Collection<Boolean> collection = awnsers;
             if(Collections.frequency(collection, collection.iterator().next()) != collection.size() && awnsers.size()==7)//implementar modelo de faltas
-            	lastSentMessage.writeLastSentMessage(clientName, cipheredMessage);
-            return success;
+            	System.out.println("bad receive");
+           
 		} catch(Exception e){
         	System.out.println("Invalid message");
         	return false;
         }
-		
+		return true;
 		
 	}
 	public boolean check(String sendDestination) {
-		boolean success=false;
-		int tentries=0;
 		String checkedName="";
 		Map<Integer, List<Transaction>> transactions = new HashMap<Integer,List<Transaction>>();
 		Map<Integer, Double> amounts = new HashMap<Integer,Double>();
 		try {
             Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination));
             CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
-            for(int i = 0; i < numServers()&&tentries<ATTEMPT; i++) {
-            	success=false;
-        		tentries=0;
-	            while(!success&&tentries<ATTEMPT){
-	            	try{
-	            		CipheredMessage response = servers.get(i).check(cipheredMessage);
-	            		Message responseDeciphered = manager.decipherCipheredMessage(response);
-	            		checkedName=responseDeciphered.getCheckedName();
-	            		
-	            		amounts.put(i, responseDeciphered.getAmount());
-	            		if(responseDeciphered.getTransactions()!=null) {
-	    		            success=true;
-	    		            pendingTransaction=new ArrayList<Transaction>();
-	    		            for(Transaction t:responseDeciphered.getTransactions()) 
-	    		            	pendingTransaction.add(t);
-	    		            if(pendingTransaction.size()!=0)
-	    		            	transactions.put(i, pendingTransaction);
-	    		            	
-	    	            }
-	    	            success=true;
-	            	} catch (RemoteException e) {
-	    	        	System.out.println("Connection fail...");
-	    	        	tentries++;
-	    	        } catch(IllegalStateException e){
-	    	        	System.out.println("Invalid signature");
-	    	        	success=true;
-	    	        }
-	            }
+            for(int i = 0; i < numServers(); i++) {
+
+            	try{
+            		CipheredMessage response = servers.get(i).check(cipheredMessage);
+            		Message responseDeciphered = manager.decipherCipheredMessage(response);
+            		checkedName=responseDeciphered.getCheckedName();
+            		if(checkedName==null) {		//no user exist
+            			throw new Exception();
+            		}
+            		amounts.put(i, responseDeciphered.getAmount());
+            		if(responseDeciphered.getTransactions()!=null&&clientName.equals(checkedName)) {
+
+    		            pendingTransaction=new ArrayList<Transaction>();
+    		            for(Transaction t:responseDeciphered.getTransactions()) 
+    		            	pendingTransaction.add(t);
+    		            if(pendingTransaction.size()!=0)
+    		            	transactions.put(i, pendingTransaction);
+    		            	
+    	            }
+
+            	} catch (RemoteException e) {
+            		//TODO fix connection bug
+    	        	System.out.println("Connection fail...");
+    	        	e.printStackTrace();
+
+    	        } catch(IllegalStateException e){
+    	        	System.out.println("Invalid signature");
+
+    	        }
+	            
             }
             Collection<Double> amount = amounts.values();
             if(Collections.frequency(amount, amount.iterator().next()) == amount.size())
             	System.out.println(checkedName + "'s balance is: " + amount.iterator().next());
             //else{ implementar modelo de faltas
 			//}
-            if(transactions.size()==0)
+            if(transactions.size()==0&&clientName.equals(checkedName))
         		System.out.println(checkedName+" has no pending transfer...");
             else if(transactions.size()!=7)
             	//or all responded or none 
@@ -253,8 +206,7 @@ public class Client {
         	System.out.println("Invalid message");
         	return false;
         }
-	
-	return success;
+	return true;
 }
 	            		
             
@@ -268,8 +220,6 @@ public class Client {
 		}
 		
 		List<Boolean> awnsers = new ArrayList<Boolean>();
-		int tentries=0;
-		boolean success=false;
 		
 		try {
 			int index=receivedPendingTransfers-1;
@@ -278,40 +228,38 @@ public class Client {
             Message msg = new Message(manager.getPublicKey(), receiveTransaction);
             CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
             
-            for(int i = 0; i < numServers()&&tentries<ATTEMPT; i++) {
-            	tentries=0;
-        		success=false;
-	            while(!success&&tentries<ATTEMPT){
-	            	try{
-			            CipheredMessage response = servers.get(i).receive(cipheredMessage);
-	
-			            Message responseDeciphered = manager.decipherCipheredMessage(response);
-			            awnsers.add(responseDeciphered.isConfirm());
-			            System.out.println("Success from server " + (i+1) + ": " + responseDeciphered.isConfirm());
-			            success= true;
-			            continue;
-	            	} catch (RemoteException e) {
-	    	        	System.out.println("Connection fail...");
-	    	        	tentries++;
-	    	        } catch(IllegalStateException e){
-	    	        	System.out.println("Illegal State Exception Invalid signature");
-	    	        	success= true;
-			            continue;
-	    	        }
-	            }
+            for(int i = 0; i < numServers(); i++) {
+        		
+            	try{
+		            CipheredMessage response = servers.get(i).receive(cipheredMessage);
+
+		            Message responseDeciphered = manager.decipherCipheredMessage(response);
+		            awnsers.add(responseDeciphered.isConfirm());
+		            System.out.println("Success from server " + (i+1) + ": " + responseDeciphered.isConfirm());
+
+
+            	} catch (RemoteException e) {
+    	        	System.out.println("Connection fail...");
+
+    	        } catch(IllegalStateException e){
+    	        	System.out.println("Illegal State Exception Invalid signature");
+
+    	        }
+	            
             }
+            
+            Collection<Boolean> collection = awnsers;
+            if(Collections.frequency(collection, collection.iterator().next()) != collection.size() && awnsers.size()==7)//implementar modelo de faltas
+            	System.out.println("bad receive");
+    		return true;
+            
         } catch (Exception e) {
         	System.out.println("Invalid message");
         	return false;
         }
-		Collection<Boolean> collection = awnsers;
-        if(Collections.frequency(collection, collection.iterator().next()) != collection.size() && awnsers.size()==7)//implementar modelo de faltas
-        	System.out.println("bad receive");
-		return success;
+		
 	}
 	public boolean audit(String sendDestination) {
-		int tentries=0;
-		boolean success=false;
 		String name ="";
 		Map<Integer, List<Transaction>> transactions = new HashMap<Integer,List<Transaction>>();
 		Map<Integer, Integer> transfers = new HashMap<Integer,Integer>();
@@ -319,63 +267,56 @@ public class Client {
             Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination));
             CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serverPublicKey);
             
-            for(int i = 0; i < numServers()&&tentries<ATTEMPT; i++) {
-            	tentries=0;
-        		success=false;
-	            while(!success&&tentries<ATTEMPT){
-	            	try{
-			            CipheredMessage response = servers.get(i).audit(cipheredMessage);
-			
-			            Message responseDeciphered = manager.decipherCipheredMessage(response);
-			            name=responseDeciphered.getCheckedName();
-			            if(responseDeciphered.getTransactions()!=null) {
-			            	transfers.put(i, responseDeciphered.getTransactions().size());
-			            	if(responseDeciphered.getTransactions().size()!=0) {
-			            		transactions.put(i, responseDeciphered.getTransactions());	
-			            	}
-				            
-			            }
-			            success=true;
-			            continue;
-	            	} catch (RemoteException e) {
-	    	        	System.out.println("Connection fail...");
-	    	        	tentries++;
-	    	        } catch(IllegalStateException e){
-	    	        	System.out.println("Invalid signature");
-	    	        	success=true;
-			            continue;
-	    	        }
-	            }
+            for(int i = 0; i < numServers(); i++) {
+            
+            	try{
+		            CipheredMessage response = servers.get(i).audit(cipheredMessage);
+		
+		            Message responseDeciphered = manager.decipherCipheredMessage(response);
+		            name=responseDeciphered.getCheckedName();
+		            if(responseDeciphered.getTransactions()!=null) {
+		            	transfers.put(i, responseDeciphered.getTransactions().size());
+		            	if(responseDeciphered.getTransactions().size()!=0) {
+		            		transactions.put(i, responseDeciphered.getTransactions());	
+		            	}
+			            
+		            }
+		            
+		            continue;
+            	} catch (RemoteException e) {
+    	        	System.out.println("Connection fail...");
+
+    	        } catch(IllegalStateException e){
+    	        	System.out.println("Invalid signature");
+
+    	        }
+            
             }
+            
+            Collection<Integer> transfer = transfers.values();
+            if(Collections.frequency(transfer, transfer.iterator().next()) == transfer.size() && transfer.size()==7) {//implementar modelo de faltas
+            	if(transfers.get(0)==0)
+            		System.out.println(name+" does not have done any transfer...");
+            	else {
+            		System.out.println(name+"'s transfer history:");
+                    for(Transaction s: transactions.get(0)) { //implementar modelo de faltas
+                    	System.out.println(s.toString());
+                    }
+            	}
+            }
+            
+            
         } catch (Exception e) {
         	System.out.println("Invalid message");
         	return false;
         }
-		Collection<Integer> transfer = transfers.values();
-        if(Collections.frequency(transfer, transfer.iterator().next()) == transfer.size() && transfer.size()==7) {//implementar modelo de faltas
-        	if(transfers.get(0)==0)
-        		System.out.println(name+" does not have done any transfer...");
-        	else {
-        		System.out.println(name+"'s transfer history:");
-                for(Transaction s: transactions.get(0)) { //implementar modelo de faltas
-                	System.out.println(s.toString());
-                }
-        	}
-        }
-		
-		return success;
+		return true;
 	}
 	
 	public String getClientName() {
 		return clientName;
 	}
 	
-	public boolean clientHasMessageNotSent(){
-		if(lastSentMessage.checkFileExists(clientName)){
-			return true;
-		}
-		return false;
-	}
 	
 	public void removePendingTransaction(){
 		pendingTransaction=new ArrayList<Transaction>();

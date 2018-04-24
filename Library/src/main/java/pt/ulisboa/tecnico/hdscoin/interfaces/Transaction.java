@@ -5,12 +5,15 @@ import pt.ulisboa.tecnico.hdscoin.Crypto.IntegrityCheck;
 import java.io.Serializable;
 import java.security.PublicKey;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 
 public class Transaction implements Serializable{
 	private String sender;
 	private String receiver;
 	private double amount;
-	//TODO save integrityCheck
+	
+	@JsonProperty("integrityCheck")
 	private IntegrityCheck digitalSign;
 	
 	public Transaction() {
@@ -42,7 +45,8 @@ public class Transaction implements Serializable{
 		
 		return "Sender:"+getSender()+
 				"\tReceiver:"+getReceiver()+
-				"\tAmount:"+getAmount()+".";
+				"\tAmount:"+getAmount()+
+				"\tIntegrityCheck:"+getIntegrityCheck().toString()+".";
 	}
 	
 

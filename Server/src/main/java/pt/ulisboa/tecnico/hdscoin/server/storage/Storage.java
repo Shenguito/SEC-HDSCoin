@@ -55,7 +55,12 @@ public class Storage {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+		try {
+		if(ledger.getPendingTransfers().size()!=0)
+			ledger.getPendingTransfers().get(0).toString();
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
 		return ledger;
 	}
 	
@@ -79,6 +84,13 @@ public class Storage {
 			return true;
 		}
 		return false;
+	}
+	
+	private String getDirectory() {
+		return serverStorage+File.separator+"client";
+	}
+	private String getBackupDirectory() {
+		return serverStorage+File.separator+"backup";
 	}
 	
 	private String getFile(String name) {
@@ -107,7 +119,7 @@ public class Storage {
 
 	public ConcurrentHashMap<PublicKey, String> getClients() throws JsonParseException, JsonMappingException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
 		ConcurrentHashMap<PublicKey, String> allClients=new ConcurrentHashMap<PublicKey, String>();
-		File file = new File("client");
+		File file = new File(getDirectory());
 		if(file.isDirectory()) {
 			for(File f: file.listFiles()){
 				allClients.put(getPubliKeyFromString(objectMapper.readValue(f, Ledger.class).getPublicKey()), f.getName().split(".json")[0].trim());
@@ -119,13 +131,13 @@ public class Storage {
 	
 	public void backupCheck() {
 		
-		File file = new File("client");
+		File file = new File(getDirectory());
 		if(file.isDirectory()) {
 			for(File f: file.listFiles()){
 				try {
 					Ledger ledger = objectMapper.readValue(f, Ledger.class);
 					try {
-						Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
+						Ledger ledgerbackup = objectMapper.readValue(new File(getBackupDirectory() + File.separator + f.getName()), Ledger.class);
 						if (ledgerbackup.myEquals(ledger)) {
 							continue;
 						} else {
@@ -139,7 +151,7 @@ public class Storage {
 				} catch (Exception e) {
 					System.out.println("Original File has error. It is rewrited\n" + e);
 					try {
-						Ledger ledgerbackup = objectMapper.readValue(new File("backup" + File.separator + f.getName()), Ledger.class);
+						Ledger ledgerbackup = objectMapper.readValue(new File(getBackupDirectory()  + File.separator + f.getName()), Ledger.class);
 						writeClient(f.getName(), ledgerbackup);
 					} catch (Exception e1) {
 						System.out.println("Both files have errors!\n" + e1);

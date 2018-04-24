@@ -46,9 +46,18 @@ public class KeystoreManager {
 	}
 	
 	public PublicKey getPublicKeyByName(String name) throws Exception{
-
 		Certificate certificate = getKeyStore().getCertificate(name);
 		PublicKey publicKey = certificate.getPublicKey();
+		
+		/*method to check if public key is correct
+		StringBuffer toReturn = new StringBuffer();
+		byte[] keyBytes=publicKey.getEncoded();
+        for (int i = 0; i < keyBytes.length; ++i) {
+            toReturn.append(Integer.toHexString(0x0100 + (keyBytes[i] & 0x00FF)).substring(1));
+        }
+		System.out.println("destiny's public key:\n"+toReturn.toString());
+		*/
+		
 	    return publicKey;
 	}
 	

@@ -73,19 +73,15 @@ public class ClientApplication {
 			    		if(option.equals("0")) {
 			    			registered=false;
 			        	}else if(option.equals("1")) {
-			        		if(client.clientHasMessageNotSent()){
-			        			System.out.println("Resending last message...");
-			        			client.reSend();
-			        		}
-			        		else{
-				        		System.out.println("Amount:");
-				        		String sendAmount = reader.nextLine();
-				        		System.out.println("Destination (Available: Alice Bob Charlie; you are "+client.getClientName().toUpperCase()+"):");
-				        		String sendDestination = reader.nextLine();
-				        		client.send(sendDestination, sendAmount);
-			        		}
+			        		
+			        		System.out.println("Amount:");
+			        		String sendAmount = reader.nextLine();
+			        		System.out.println("Destination (Available: Alice Bob Charlie; you are "+client.getClientName().toUpperCase()+"):");
+			        		String sendDestination = reader.nextLine();
+			        		client.send(sendDestination, sendAmount);
+			        		
 		    			}else if(option.equals("2")) {
-			    			System.out.println("Destination (Available: Alice Bob Charly; you are "+client.getClientName().toUpperCase()+"):");
+			    			System.out.println("Destination (Available: Alice Bob Charlie; you are "+client.getClientName().toUpperCase()+"):");
 			    			String destination = reader.nextLine();
 			    			client.check(destination.toLowerCase().trim());
 			    		}else if(option.equals("3")) {
@@ -114,7 +110,7 @@ public class ClientApplication {
 			    			}
 			    			client.removePendingTransaction();
 			    		}else if(option.equals("4")) {
-			    			System.out.println("Destination (Available: Alice Bob Charly; you are "+client.getClientName().toUpperCase()+"):");
+			    			System.out.println("Destination (Available: Alice Bob Charlie; you are "+client.getClientName().toUpperCase()+"):");
 			    			String destination = reader.nextLine();
 			        		client.audit(destination.toLowerCase().trim());
 			    		}else {

@@ -173,10 +173,10 @@ public class Server implements RemoteServerInterface{
 		if(storage.checkFileExists(clients.get(decipheredMessage.getSender()))){
 			Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
 			if(sender.sendBalance(decipheredMessage.getAmount())) {
-				Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination()));
-				destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount(), manager.getDigitalSign(msg)));
-
-				//Write to file
+				Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination())); //destiny public key, not name
+				destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),
+						clients.get(decipheredMessage.getDestination()),decipheredMessage.getAmount(), manager.getDigitalSign(msg)));
+				
 				try {
 					storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
 					storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
@@ -212,16 +212,20 @@ public class Server implements RemoteServerInterface{
 			throw new RemoteException();
 		
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
-		
+		System.out.println(clients.get(decipheredMessage.getSender())+":\n"+decipheredMessage.getSender());
+		System.out.println(clients.get(decipheredMessage.getDestination())+":\n"+decipheredMessage.getDestination());
+
 		Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>(), clients.get(decipheredMessage.getDestination())); //case the client does not exist
 		if(storage.checkFileExists(clients.get(decipheredMessage.getDestination()))){
 			Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
+			
 			if(decipheredMessage.getDestination().equals(decipheredMessage.getSender()))
 				message = new Message(manager.getPublicKey(), value.getBalance(), value.getPendingTransfers(), clients.get(decipheredMessage.getDestination()));
 			else
 				message = new Message(manager.getPublicKey(), value.getBalance(), null, clients.get(decipheredMessage.getDestination()));
 		}
 		CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
+		
 		return cipheredMessage;
 	}
 
@@ -235,10 +239,7 @@ public class Server implements RemoteServerInterface{
 		
 		Message message = new Message(serverKeyPair.getPublic(), false);
 		
-		//decipheredMessage.getDestination()==null
-		//System.out.println("Test1: "+clients.get(decipheredMessage.getSender()));
 		Ledger destiny = storage.readClient(clients.get(decipheredMessage.getSender()));
-		
 		
 		Iterator<Transaction> i = destiny.getPendingTransfers().iterator();
 		while (i.hasNext()) {
@@ -246,7 +247,10 @@ public class Server implements RemoteServerInterface{
 			if(decipheredMessage.getTransaction().myEquals(t)){
 				Ledger sender = storage.readClient(t.getSender());
 				destiny.receiveBalance(t.getAmount());
-
+				if(t.getIntegrityCheck()!=null)
+					System.out.println("Test Ttransaction:\n"+t.getIntegrityCheck().getDigitalSignature());
+				else
+					System.out.println("NULLLLLLLLLLLLLLL");
 				destiny.addTransfers(t);
 				sender.addTransfers(t);
 				

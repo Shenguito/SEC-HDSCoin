@@ -48,4 +48,9 @@ public class IntegrityCheck implements Serializable{
     public long getTimestamp() {
         return timestamp;
     }
+    
+    @Override
+	public String toString() {
+    	return "["+getDigitalSignature()+", "+getNonce()+", "+getTimestamp()+"]";
+    }
 }

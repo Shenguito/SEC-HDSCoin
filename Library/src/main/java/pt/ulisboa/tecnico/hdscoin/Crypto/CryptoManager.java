@@ -165,12 +165,13 @@ public class CryptoManager {
 	        Message deciphMsg = (Message) fromBytes(decipheredContent);
 	        byte[] decipheredIntegrityBytes = CryptoUtil.symDecipher(message.getIntegrityCheck(), message.getIV(), key);
 	        IntegrityCheck check = (IntegrityCheck) fromBytes(decipheredIntegrityBytes);
+
 	    	return check;
 	    } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
 	        e.printStackTrace();
 	        System.out.println("Decipher error...");
+	        return null;
 	    }
-    	return null;
     }
 
     /**
