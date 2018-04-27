@@ -11,6 +11,7 @@ import pt.ulisboa.tecnico.hdscoin.interfaces.RemoteServerInterface;
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 import pt.ulisboa.tecnico.hdscoin.server.storage.Ledger;
 import pt.ulisboa.tecnico.hdscoin.server.storage.Storage;
+import pt.ulisboa.tecnico.hdscoin.server.storage.Tasks;
 
 import java.net.URISyntaxException;
 import java.security.KeyPair;
@@ -18,6 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +48,9 @@ public class Server implements RemoteServerInterface{
  	private KeystoreManager keyPairManager;
  	private KeyPair serverKeyPair;
  	private CryptoManager manager;
+ 	private Tasks messageManager;
+ 	private String nameServer;
+ 	private int taskCounter;
  	
  	private boolean crashFailure;
  	
@@ -54,6 +59,7 @@ public class Server implements RemoteServerInterface{
 	public Server(int number) throws RemoteException, AlreadyBoundException {
 		String server="server"+number;
 		storage=new Storage(server);
+		taskCounter=0;
 		check();
 		connect(server);
 		try {
@@ -62,6 +68,8 @@ public class Server implements RemoteServerInterface{
 			serverKeyPair=keyPairManager.getKeyPair("server1", "server1123");
 			//serverKeyPair=keyPairManager.getKeyPair("server"+number, "server"+number+"123");
 			manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
+			messageManager = new Tasks(nameServer);
+			
 		}catch(Exception e) {
 			System.out.println("KeyPair Error");
 			e.printStackTrace();
@@ -106,6 +114,7 @@ public class Server implements RemoteServerInterface{
     	        
         	registry.bind("RemoteServerInterface1", stub);
         	System.out.println("ServerInterface1 ready");
+        	nameServer = "Server1";
         	return;
         }
         System.out.println(RealNumS);
@@ -113,7 +122,7 @@ public class Server implements RemoteServerInterface{
     	    registry = LocateRegistry.getRegistry(8000);
     	        
         	registry.bind(new String("RemoteServerInterface" + (RealNumS + 1)), stub);
-        	
+        	nameServer = new String("Server" + (RealNumS +1));
         	System.out.println("ServerInterface" + (RealNumS + 1) + " ready");
 		/*
 		System.setProperty("java.rmi.server.hostname","127.0.0.1");
@@ -167,8 +176,15 @@ public class Server implements RemoteServerInterface{
 
 		System.out.println("Deciphering message");
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
-
-
+		
+		taskCounter++;
+		List<String> receivedTask = new ArrayList<String>();
+		receivedTask.add("send");
+		receivedTask.add(decipheredMessage.getCheckedName());
+		receivedTask.add(Base64.getEncoder().encodeToString(decipheredMessage.getDestination().getEncoded()));
+		receivedTask.add(String.valueOf(decipheredMessage.getAmount()));
+		messageManager.addTask(taskCounter, receivedTask);
+		
 		Message message = new Message(serverKeyPair.getPublic(), false); //case the client does not exist
 		if(storage.checkFileExists(clients.get(decipheredMessage.getSender()))){
 			Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
@@ -214,7 +230,15 @@ public class Server implements RemoteServerInterface{
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 		System.out.println(clients.get(decipheredMessage.getSender())+":\n"+decipheredMessage.getSender());
 		System.out.println(clients.get(decipheredMessage.getDestination())+":\n"+decipheredMessage.getDestination());
-
+		
+		taskCounter++;
+		List<String> receivedTask = new ArrayList<String>();
+		receivedTask.add("check");
+		receivedTask.add(decipheredMessage.getCheckedName());
+		receivedTask.add(Base64.getEncoder().encodeToString(decipheredMessage.getDestination().getEncoded()));
+		
+		messageManager.addTask(taskCounter, receivedTask);
+		
 		Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>(), clients.get(decipheredMessage.getDestination())); //case the client does not exist
 		if(storage.checkFileExists(clients.get(decipheredMessage.getDestination()))){
 			Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
@@ -236,6 +260,14 @@ public class Server implements RemoteServerInterface{
 			throw new RemoteException();
 		
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
+		
+		taskCounter++;
+		List<String> receivedTask = new ArrayList<String>();
+		receivedTask.add("receive");
+		receivedTask.add(decipheredMessage.getCheckedName());
+		receivedTask.add(Base64.getEncoder().encodeToString(decipheredMessage.getDestination().getEncoded()));
+		receivedTask.add(String.valueOf(decipheredMessage.getAmount()));
+		messageManager.addTask(taskCounter, receivedTask);
 		
 		Message message = new Message(serverKeyPair.getPublic(), false);
 		
@@ -288,6 +320,19 @@ public class Server implements RemoteServerInterface{
 		
 		Message decipheredMessage = manager.decipherCipheredMessage(msg);
 		
+		//check with other servers the tasks the received tasks
+		//and if necessary change/update the receivedtasks file 
+		// only then insert the new tas
+		
+		//default values only to fill 
+		
+		taskCounter++;
+		List<String> receivedTask = new ArrayList<String>();
+		receivedTask.add("audit");
+		receivedTask.add(decipheredMessage.getCheckedName());
+		receivedTask.add(Base64.getEncoder().encodeToString(decipheredMessage.getDestination().getEncoded()));
+
+		messageManager.addTask(taskCounter, receivedTask);
 		
 		Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
 		Message message = new Message(manager.getPublicKey(), value.getBalance(), value.getTransfers(), clients.get(decipheredMessage.getDestination()));
