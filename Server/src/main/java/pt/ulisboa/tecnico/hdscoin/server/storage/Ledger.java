@@ -53,9 +53,19 @@ public class Ledger implements Serializable{
         RSAPublicKey pubKey = (RSAPublicKey) kf.generatePublic(keySpecX509);
         return pubKey;
 	}
-	
-	
-	
+
+	public void setTransfers(List<Transaction> transfers) {
+		this.transfers = transfers;
+	}
+
+	public void setPendingTransfers(List<Transaction> pendingTransfers) {
+		this.pendingTransfers = pendingTransfers;
+	}
+
+	public void updateBalance(double balance){
+		this.balance = balance;
+	}
+
 	public String getPublicKey(){
 		return publicKey;
 	}

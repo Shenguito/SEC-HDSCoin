@@ -99,7 +99,6 @@ public class CryptoManager {
         CipheredMessage cipheredMessage = null;
         try {
             //Required params
-            long nonce = new SecureRandom().nextLong();
             byte[] IV = generateIV();
 
             //AES ciphering of Message
@@ -107,9 +106,9 @@ public class CryptoManager {
             byte[] cipheredContent = cipherContent(message, IV, aesKey);
 
             //Signature generation
-            byte[] concatParams = concatHashParams(message, nonce, IV);
+            byte[] concatParams = concatHashParams(message, message.getTimestamp(), IV);
             byte[] digitalSig = CryptoUtil.makeDigitalSignature(concatParams, privKey);
-            IntegrityCheck integrityCheck = new IntegrityCheck(digitalSig, nonce, nonce);
+            IntegrityCheck integrityCheck = new IntegrityCheck(digitalSig, message.getTimestamp(), message.getTimestamp());
             byte[] integrityCheckBytes = toBytes(integrityCheck);
 
             //AES ciphering of Signature and params

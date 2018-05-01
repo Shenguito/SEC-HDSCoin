@@ -14,4 +14,5 @@ public interface RemoteServerInterface extends Remote{
     CipheredMessage check(CipheredMessage msg) throws RemoteException;
     CipheredMessage receive(CipheredMessage msg) throws RemoteException;
     CipheredMessage audit(CipheredMessage msg) throws RemoteException;
+    CipheredMessage clientHasRead(CipheredMessage msg) throws RemoteException;
 }

@@ -30,7 +30,7 @@ public class ServerApplication {
 			*/
 			Server[] servers=new Server[serversize];
 			for(int i=0; i<servers.length; i++){
-				servers[0]=new Server(i+1);
+				servers[i]=new Server(i+1);
 			}
 			while(true){
 				System.out.println(serversize+" servers are running. Choose a server to manage!");
