@@ -96,7 +96,7 @@ public class Message implements Serializable{
 	public boolean isConfirm() {
 		return confirm;
 	}
-	public String   getCheckedName(){
+	public String getCheckedName(){
 		return checkedName;
 	}
 	public Transaction getTransaction(){

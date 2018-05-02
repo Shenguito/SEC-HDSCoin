@@ -66,7 +66,7 @@ public class Server implements RemoteServerInterface {
         try {
             keyPairManager = new KeystoreManager("/server.jks", "server123");
             //TODO SERVERKEYPAIR only server1 keypair is used by all servers
-            serverKeyPair = keyPairManager.getKeyPair("server1", "server1123");
+            serverKeyPair = keyPairManager.getKeyPair("server"+number, "server"+number+"123");
             //serverKeyPair=keyPairManager.getKeyPair("server"+number, "server"+number+"123");
             manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
             messageManager = new Tasks(nameServer);
@@ -333,9 +333,8 @@ public class Server implements RemoteServerInterface {
             toBeUpdated.setTransfers(decipheredMessage.getTransactions());
         toBeUpdated.setBalance(decipheredMessage.getAmount());
         try {
-            storage.writeClient(clients.get(decipheredMessage.getCheckedName()), toBeUpdated);
-            //Write to backup file
-            storage.writeClientBackup(clients.get(decipheredMessage.getCheckedName()), toBeUpdated);
+            storage.writeClient(clients.get(decipheredMessage.getCheckedKey()), toBeUpdated);
+            storage.writeClientBackup(clients.get(decipheredMessage.getCheckedKey()), toBeUpdated);
         } catch (IOException e) {
             e.printStackTrace();
         }

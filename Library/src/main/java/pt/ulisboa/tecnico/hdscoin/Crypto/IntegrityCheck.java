@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.hdscoin.Crypto;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -51,6 +52,6 @@ public class IntegrityCheck implements Serializable{
     
     @Override
 	public String toString() {
-    	return "["+getDigitalSignature()+", "+getNonce()+", "+getTimestamp()+"]";
+    	return "["+Arrays.toString(getDigitalSignature())+", "+getNonce()+", "+getTimestamp()+"]";
     }
 }
