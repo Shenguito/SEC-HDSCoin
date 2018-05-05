@@ -19,9 +19,9 @@ public interface RemoteServerInterface extends Remote{
     
     
 	//Authenticated Double-Echo Broadcast page 118 for register
-	void sendEchoRegister(FunctionRegister register) throws RemoteException;
-	void sendReadyRegister(FunctionRegister register) throws RemoteException;
-	void sendDeliveryRegister(FunctionRegister register) throws RemoteException;
+    FunctionRegister sendEchoRegister(FunctionRegister register) throws RemoteException;
+    FunctionRegister sendReadyRegister(FunctionRegister register) throws RemoteException;
+    FunctionRegister sendDeliveryRegister(FunctionRegister register) throws RemoteException;
     
     
     
