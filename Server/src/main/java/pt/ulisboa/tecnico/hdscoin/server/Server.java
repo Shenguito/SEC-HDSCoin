@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
 import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
+import pt.ulisboa.tecnico.hdscoin.interfaces.FunctionRegister;
 import pt.ulisboa.tecnico.hdscoin.interfaces.KeystoreManager;
 import pt.ulisboa.tecnico.hdscoin.interfaces.RemoteServerInterface;
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
@@ -13,6 +14,7 @@ import pt.ulisboa.tecnico.hdscoin.server.storage.Ledger;
 import pt.ulisboa.tecnico.hdscoin.server.storage.Storage;
 import pt.ulisboa.tecnico.hdscoin.server.storage.Tasks;
 
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -23,6 +25,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,7 +35,10 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.rmi.AccessException;
 import java.rmi.AlreadyBoundException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -41,6 +47,18 @@ import java.rmi.server.UnicastRemoteObject;
 
 public class Server implements RemoteServerInterface {
 
+	
+	//Authenticated Double-Echo Broadcast page 118
+	//CHANGED
+	boolean sentEchoRegister=false;
+	boolean sentReadyRegister=false;
+	boolean deliveredRegister=false;
+	HashMap<String, FunctionRegister> registerMessage=new HashMap<String, FunctionRegister>();
+	
+	
+	
+	
+	
 
     private Storage storage;
     private KeystoreManager keyPairManager;
@@ -48,8 +66,14 @@ public class Server implements RemoteServerInterface {
     private CryptoManager manager;
     private Tasks messageManager;
     private String nameServer;
+    private int serverNumber;
+    private int totalServerNumber;
     private int taskCounter;
+    
+    private List<RemoteServerInterface> servers;
 
+    private HashMap<String, PublicKey> serversPublicKey;
+    
     private boolean crashFailure;
 
     private CipheredMessage lastWrite = null;
@@ -57,17 +81,19 @@ public class Server implements RemoteServerInterface {
 
     private ConcurrentHashMap<PublicKey, String> clients;
 
-    public Server(int number) throws RemoteException, AlreadyBoundException {
-        String server = "server" + number;
-        storage = new Storage(server);
+    public Server(int number, int totalServer) throws RemoteException, AlreadyBoundException, MalformedURLException, NotBoundException {
+    	nameServer = "server" + number;
+    	serverNumber=number;
+    	totalServerNumber=totalServer;
+    	servers = new ArrayList<RemoteServerInterface>();
+    	serversPublicKey = new HashMap<String, PublicKey>();
+        storage = new Storage(nameServer);
         taskCounter = 0;
         check();
-        connect(server);
+        connect(number);
         try {
             keyPairManager = new KeystoreManager("/server.jks", "server123");
-            //TODO SERVERKEYPAIR only server1 keypair is used by all servers
             serverKeyPair = keyPairManager.getKeyPair("server"+number, "server"+number+"123");
-            //serverKeyPair=keyPairManager.getKeyPair("server"+number, "server"+number+"123");
             manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
             messageManager = new Tasks(nameServer);
 
@@ -76,6 +102,18 @@ public class Server implements RemoteServerInterface {
             e.printStackTrace();
         }
         crashFailure = false;
+    }
+    public void connectServer() throws RemoteException, MalformedURLException, NotBoundException {
+        for (int i = 0; i < totalServerNumber; i++) {
+        	servers.add((RemoteServerInterface) Naming.lookup(new String("//localhost:8000/" + "RemoteServerInterface" + (i + 1))));
+        	try {
+        		if((i+1)==serverNumber) //Does not save publickey of himself
+        			continue;
+				serversPublicKey.put("server"+(i+1), manager.getPublicKeyBy("server"+(i+1)));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+        }
     }
 
     private void check() {
@@ -103,7 +141,7 @@ public class Server implements RemoteServerInterface {
 
     }
 
-    private void connect(String server) throws RemoteException, AlreadyBoundException {
+    private void connect(int serverNumber) throws RemoteException, AlreadyBoundException {
         System.setProperty("java.rmi.server.hostname", "127.0.0.1");
         RemoteServerInterface stub;
         Registry registry;
@@ -116,7 +154,7 @@ public class Server implements RemoteServerInterface {
 
             registry.bind("RemoteServerInterface1", stub);
             System.out.println("ServerInterface1 ready");
-            nameServer = "Server1";
+            System.out.println("ServerInterface" + (RealNumS + 1) + " ready"+"\t Server number: "+serverNumber);
             return;
         }
         System.out.println(RealNumS);
@@ -124,12 +162,32 @@ public class Server implements RemoteServerInterface {
         registry = LocateRegistry.getRegistry(8000);
 
         registry.bind(new String("RemoteServerInterface" + (RealNumS + 1)), stub);
-        nameServer = new String("Server" + (RealNumS + 1));
-        System.out.println("ServerInterface" + (RealNumS + 1) + " ready");
+        System.out.println("ServerInterface" + (RealNumS + 1) + " ready"+"\t Server number: "+serverNumber);
     }
 
     public void register(String clientName, PublicKey publickey) throws RemoteException {
+    	
+    	//Authenticated Double-Echo Broadcast page 118
+    	//CHANGED
+    	FunctionRegister register=new FunctionRegister(clientName, publickey);
+    	for (int i = 0; i < servers.size(); i++) {
+    		if((i+1)==serverNumber) {
+    			sentEchoRegister=true;
+    			registerMessage.put(nameServer, register);
+    			continue;
+    		}
+    		try {
+    			//TODO should return echo value from others server?
+                servers.get(i).sendEchoRegister(register);
 
+            } catch (RemoteException e) {
+                System.out.println("Connection fail...");
+                System.out.println("Server[" + (i+1) + "] connection failed");
+            }
+    	}
+    	
+    	//TODO next lines below should continue with agreement above
+    	
         if (isServerCrashed())
             throw new RemoteException();
 
@@ -358,6 +416,49 @@ public class Server implements RemoteServerInterface {
         }
         return true;
     }
+    
+    
+    
+    
+    
+    
+    public CipheredMessage readOperation(CipheredMessage msg) throws RemoteException {
+    	return null;
+    }
+    public CipheredMessage readOperationConclusion(CipheredMessage msg) throws RemoteException {
+    	return null;
+    }
+    public CipheredMessage writeOperation(CipheredMessage msg) throws RemoteException {
+    	return null;
+    }
+    public void test(String test) {
+    	System.out.println(nameServer+" receive: "+test);
+    }
+    
+    
+    
+    
+	//Authenticated Double-Echo Broadcast page 118 for register
+	//CHANGED
+	@Override
+	public void sendEchoRegister(FunctionRegister register) throws RemoteException {
+		if(!sentEchoRegister) {
+			
+			this.sentEchoRegister=true;
+		}
+		
+	}
+	@Override
+	public void sendReadyRegister(FunctionRegister register) throws RemoteException {
+		
+		this.sentReadyRegister=true;
+	}
+	@Override
+	public void sendDeliveryRegister(FunctionRegister register) throws RemoteException {
+		
+		this.sentReadyRegister=true;
+	}
+    
 
 
 }

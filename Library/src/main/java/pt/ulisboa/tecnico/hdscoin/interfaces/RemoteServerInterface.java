@@ -15,4 +15,23 @@ public interface RemoteServerInterface extends Remote{
     CipheredMessage receive(CipheredMessage msg) throws RemoteException;
     CipheredMessage audit(CipheredMessage msg) throws RemoteException;
     CipheredMessage clientHasRead(CipheredMessage msg) throws RemoteException;
+    
+    
+    
+	//Authenticated Double-Echo Broadcast page 118 for register
+	void sendEchoRegister(FunctionRegister register) throws RemoteException;
+	void sendReadyRegister(FunctionRegister register) throws RemoteException;
+	void sendDeliveryRegister(FunctionRegister register) throws RemoteException;
+    
+    
+    
+    
+    
+    
+    CipheredMessage readOperation(CipheredMessage msg) throws RemoteException;
+    CipheredMessage readOperationConclusion(CipheredMessage msg) throws RemoteException;
+    
+    CipheredMessage writeOperation(CipheredMessage msg) throws RemoteException;
+    
+    void test(String text)throws RemoteException;
 }

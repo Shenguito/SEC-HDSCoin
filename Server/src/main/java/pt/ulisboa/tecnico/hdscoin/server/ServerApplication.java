@@ -2,7 +2,9 @@ package pt.ulisboa.tecnico.hdscoin.server;
 
 import pt.ulisboa.tecnico.hdscoin.interfaces.RemoteServerInterface;
 
+import java.net.MalformedURLException;
 import java.rmi.AlreadyBoundException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -30,10 +32,33 @@ public class ServerApplication {
 			*/
 			Server[] servers=new Server[serversize];
 			for(int i=0; i<servers.length; i++){
-				servers[i]=new Server(i+1);
+				try {
+					servers[i]=new Server(i+1, serversize);
+				} catch (MalformedURLException | NotBoundException e) {
+					
+					e.printStackTrace();
+				}
 			}
 			while(true){
-				System.out.println(serversize+" servers are running. Choose a server to manage!");
+				System.out.println("\n"+serversize+" servers are running. Do you confirm?");
+				System.out.println("1-Confirm.");
+				System.out.println("0-Exit.");
+				String confirm=reader.nextLine();
+				if(Integer.parseInt(confirm.trim())==1) {
+					for(int i=0; i<servers.length; i++){
+						try {
+							servers[i].connectServer();
+						} catch (MalformedURLException | NotBoundException e) {
+							
+							e.printStackTrace();
+						}
+					}
+				}else if(Integer.parseInt(confirm.trim())==0) {
+					break;
+				}else {
+					System.out.println("\nThe '"+confirm+ "' is not a valid number!");
+				}
+				
 				String chosenServer=reader.nextLine();
 				int chosenServerInt=0;
 				try{
@@ -60,11 +85,12 @@ public class ServerApplication {
 					}
 				}
 			}
+			
 		} catch (RemoteException e) {
 			System.out.println("Connection Problem");
 		} catch (AlreadyBoundException e) {
 			System.out.println("Already Bound");
 		}
-
+		System.out.println("GoodBye!!!");
     }
 }
