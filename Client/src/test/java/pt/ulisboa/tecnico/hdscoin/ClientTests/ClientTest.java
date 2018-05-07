@@ -13,6 +13,9 @@ import pt.ulisboa.tecnico.hdscoin.client.Client;
 
 public class ClientTest {
 
+	static Client alice;
+	static Client bob;
+
 	@Test
 	public void register() {
 		try {
@@ -30,11 +33,15 @@ public class ClientTest {
 	@Test
 	public void send() {
 		try {
-			Client alice=new Client("localhost", "alice", "alice123");
-			Client bob=new Client("localhost", "bob", "bob123");
+			alice=new Client("localhost", "alice", "alice123");
+			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
-			assertTrue(alice.send("bob", "50"));
+			bob.check("bob");
+			alice.check("bob");
+			bob.check("alice");
+			alice.check("alice");
+			assertTrue(alice.send("bob", "5.0"));
 		} catch (RemoteException e) {
 			fail("Not yet implemented");
 			e.printStackTrace();
@@ -49,12 +56,16 @@ public class ClientTest {
 	@Test
 	public void check() {
 		try {
-			Client alice=new Client("localhost", "alice", "alice123");
-			Client bob=new Client("localhost", "bob", "bob123");
+			alice=new Client("localhost", "alice", "alice123");
+			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
-			assertTrue(alice.send("bob", "10"));
-			assertTrue(bob.send("alice", "10"));
+			alice.check("bob");
+			bob.check("alice");
+			bob.check("bob");
+			alice.check("alice");
+			assertTrue(alice.send("bob", "1"));
+			assertTrue(bob.send("alice", "1"));
 			assertTrue(alice.check("bob"));
 			assertTrue(bob.check("alice"));
 			assertTrue(alice.check("alice"));
@@ -72,16 +83,20 @@ public class ClientTest {
 	@Test
 	public void receive() {
 		try {
-			Client alice=new Client("localhost", "alice", "alice123");
-			Client bob=new Client("localhost", "bob", "bob123");
+			alice=new Client("localhost", "alice", "alice123");
+			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
-			assertTrue(alice.send("bob", "10"));
-			assertTrue(alice.send("bob", "5"));
-			assertTrue(alice.send("bob", "15"));
-			assertTrue(alice.send("bob", "25"));
-			assertTrue(alice.send("bob", "20"));
-			assertTrue(bob.send("alice", "10"));
+			alice.check("bob");
+			bob.check("alice");
+			alice.check("alice");
+			assertTrue(alice.send("bob", "1.0"));
+			assertTrue(alice.send("bob", "0.5"));
+			assertTrue(alice.send("bob", "1.5"));
+			assertTrue(alice.send("bob", "2.5"));
+			assertTrue(alice.send("bob", "2.0"));
+			bob.check("bob");
+			assertTrue(bob.send("alice", "1.0"));
 			assertTrue(alice.check("alice"));
 			assertTrue(bob.check("bob"));
 			assertTrue(alice.receive(1));
@@ -102,16 +117,20 @@ public class ClientTest {
 	@Test
 	public void audit() {
 		try {
-			Client alice=new Client("localhost", "alice", "alice123");
-			Client bob=new Client("localhost", "bob", "bob123");
+			alice=new Client("localhost", "alice", "alice123");
+			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
-			assertTrue(alice.send("bob", "10"));
-			assertTrue(alice.send("bob", "5"));
-			assertTrue(alice.send("bob", "15"));
-			assertTrue(alice.send("bob", "25"));
-			assertTrue(alice.send("bob", "20"));
-			assertTrue(bob.send("alice", "10"));
+			alice.check("bob");
+			bob.check("alice");
+			alice.check("alice");
+			assertTrue(alice.send("bob", "1"));
+			assertTrue(alice.send("bob", "0.5"));
+			assertTrue(alice.send("bob", "1.5"));
+			assertTrue(alice.send("bob", "2.5"));
+			assertTrue(alice.send("bob", "2.0"));
+			bob.check("bob");
+			assertTrue(bob.send("alice", "1.0"));
 			assertTrue(alice.check("alice"));
 			assertTrue(bob.check("bob"));
 			assertTrue(alice.receive(1));

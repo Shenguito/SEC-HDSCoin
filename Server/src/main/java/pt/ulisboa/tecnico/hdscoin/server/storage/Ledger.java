@@ -14,6 +14,7 @@ import javax.xml.bind.DatatypeConverter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
 
@@ -28,6 +29,8 @@ public class Ledger implements Serializable{
 	private double balance;
 	private List<Transaction> transfers;
 	private List<Transaction> pendingTransfers;
+	private CipheredMessage lastWrite = null;
+	private long lastWriteTimestamp = -1;
 	public Ledger() {
 		
 	}
@@ -52,6 +55,25 @@ public class Ledger implements Serializable{
         X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(bytes);
         RSAPublicKey pubKey = (RSAPublicKey) kf.generatePublic(keySpecX509);
         return pubKey;
+	}
+
+	public CipheredMessage getLastWrite() {
+		return lastWrite;
+	}
+
+	public long getLastWriteTimestamp() {
+		return lastWriteTimestamp;
+	}
+
+
+
+
+	public void setLastWrite(CipheredMessage lastWrite) {
+		this.lastWrite = lastWrite;
+	}
+
+	public void setLastWriteTimestamp(long lastWriteTimestamp) {
+		this.lastWriteTimestamp = lastWriteTimestamp;
 	}
 
 	public void setTransfers(List<Transaction> transfers) {

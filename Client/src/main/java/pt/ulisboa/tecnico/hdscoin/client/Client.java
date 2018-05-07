@@ -34,8 +34,9 @@ public class Client {
     private HashMap<String, PublicKey> serversPublicKey = new HashMap<String, PublicKey>();
     //private PublicKey serverPublicKey;
     private boolean isReading = false;
-    private long writeTimestamp = 0;
     private long readID = 0;
+
+    private HashMap<String, Long> writestamps = new HashMap<>();
 
     ExecutorService service = Executors.newFixedThreadPool(7);
 
@@ -99,6 +100,7 @@ public class Client {
                 System.out.println("Connection fail...");
                 System.out.println("Server[" + (i+1) + "] connection failed");
             } catch(Exception e1){
+                e1.printStackTrace();
             	System.out.println("Exception1: "+e1);
             }
 
@@ -114,8 +116,10 @@ public class Client {
         try {
 
             final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
-            writeTimestamp++;
-            Message msg = new Message(Double.parseDouble(sendAmount.trim()), manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), writeTimestamp); //SERVER_key represents sendDestination
+            final ConcurrentHashMap<String, Message> failedacklist = new ConcurrentHashMap<>();
+            if(writestamps.containsKey(clientName)) writestamps.put(clientName, writestamps.get(clientName) + 1);
+            else writestamps.put(clientName, 1L);
+            Message msg = new Message(Double.parseDouble(sendAmount.trim()), manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), writestamps.get(clientName)); //SERVER_key represents sendDestination
             if (serversPublicKey.size() > numServers())
                 System.out.println("I didn't received publickey for all server");
 
@@ -129,6 +133,7 @@ public class Client {
 
                                 Message responseDeciphered = manager.decipherCipheredMessage(response);
                                 if (responseDeciphered.isConfirm()) acklist.putIfAbsent("" + index, responseDeciphered);
+                                else failedacklist.putIfAbsent("" + index, responseDeciphered);
                                 System.out.println("Success from server " + (index + 1) + ": " + responseDeciphered.isConfirm());
                             } catch (RemoteException e) {
                                 System.out.println("Connection fail...");
@@ -140,10 +145,15 @@ public class Client {
                         }
                 );
             }
-            while (!(acklist.keySet().size() > (numServers() + 1) / 2)) {
+            while (!(acklist.keySet().size() > (numServers() + 1) / 2) && !(failedacklist.keySet().size() > (numServers() + 1) / 2)) {
             }
-            System.out.println("SUCCESS");
-            return true;
+            if(acklist.keySet().size() > (numServers() + 1) / 2) {
+                System.out.println("SUCCESS");
+                return true;
+            } else {
+                System.out.println("FAILURE");
+                return false;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Invalid message");
@@ -168,7 +178,7 @@ public class Client {
                         //TODO Last message? or a array of message?
                         readList.putIfAbsent("" + index, responseDeciphered);
                         checkedName.replace(0, responseDeciphered.getCheckedName().length(), responseDeciphered.getCheckedName());
-                        if (checkedName.toString() == null) {        //no user exist
+                        if (checkedName.toString().equals("")) {        //no user exist
                             throw new Exception();
                         }
                         if (responseDeciphered.getTransactions() != null && clientName.equals(checkedName.toString())) {
@@ -207,7 +217,8 @@ public class Client {
         System.out.println("Enforcing Read");
         Message highestVal = readList.values().stream().max(Comparator.comparing(Message::getTimestamp)).get();
         readID++;
-        writeTimestamp++;
+        if(writestamps.containsKey(checkedName.toString())) writestamps.put(checkedName.toString(), highestVal.getTimestamp() + 1);
+        else writestamps.put(checkedName.toString(),  highestVal.getTimestamp() + 1);
         final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
         Message newMsg = null;
         try {
@@ -216,7 +227,7 @@ public class Client {
                     highestVal.getTransactions(),
                     keyPairManager.getPublicKeyByName(checkedName.toString()),
                     checkedName.toString(),
-                    writeTimestamp,
+                    writestamps.get(checkedName.toString()),
                     isAudit);
         } catch (Exception e) {
             e.printStackTrace();
@@ -275,12 +286,13 @@ public class Client {
         }
 
         final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
-        writeTimestamp++;
+        if(writestamps.containsKey(clientName)) writestamps.put(clientName, writestamps.get(clientName) + 1);
+        else writestamps.put(clientName, 1L);
         try {
             int index = receivedPendingTransfers - 1;
             Transaction receiveTransaction = pendingTransaction.get(index);
 
-            Message msg = new Message(manager.getPublicKey(), receiveTransaction, writeTimestamp);
+            Message msg = new Message(manager.getPublicKey(), receiveTransaction, writestamps.get(clientName));
 
             for (int i = 0; i < numServers(); i++) {
 
@@ -317,9 +329,7 @@ public class Client {
         readID++;
         try {
             Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), readID);
-
             for (int i = 0; i < numServers(); i++) {
-
             	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
                 final int index = i;
                 service.execute(() -> {
