@@ -56,7 +56,11 @@ public class Server implements RemoteServerInterface {
 	private boolean sentEchoRegister=false;
 	private boolean sentReadyRegister=false;
 	private boolean deliveredRegister=false;
+	private FunctionRegister registerEcho=null;
+	private FunctionRegister registerReady=null;
+	private FunctionRegister registerDelivery=null;
 	private HashMap<String, ArrayList<FunctionRegister>> registerEchoMessage=new HashMap<String, ArrayList<FunctionRegister>>();
+	private HashMap<String, ArrayList<FunctionRegister>> registerReadyMessage=new HashMap<String, ArrayList<FunctionRegister>>();
 	private int rid=0;
 	private int wts=0;
 	private ExecutorService service = Executors.newFixedThreadPool(7);
@@ -93,7 +97,7 @@ public class Server implements RemoteServerInterface {
     	serversPublicKey = new HashMap<String, PublicKey>();
         storage = new Storage(nameServer);
         taskCounter = 0;
-        check();
+        backupFileCheck();
         connect(number);
         try {
             keyPairManager = new KeystoreManager("/server.jks", "server123");
@@ -120,7 +124,7 @@ public class Server implements RemoteServerInterface {
         }
     }
 
-    private void check() {
+    private void backupFileCheck() {
         storage.backupCheck();
         try {
             clients = storage.getClients();
@@ -169,21 +173,8 @@ public class Server implements RemoteServerInterface {
         System.out.println("ServerInterface" + (RealNumS + 1) + " ready"+"\t Server number: "+serverNumber);
     }
 
-    public void register(String clientName, PublicKey publickey) throws RemoteException {
-    	
-    	if (isServerCrashed())
-            throw new RemoteException();
-    	
-    	int readID=rid+1;
-    	int writeTS=wts+1;
-    	
-    	
-    	
-    	/*
-    	
+    private boolean registerEcho(FunctionRegister register) throws RemoteException{
     	//Authenticated Double-Echo Broadcast page 118 Echo
-    	//CHANGED
-    	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, writeTS, nameServer);
     	
     	final ConcurrentHashMap<String, FunctionRegister> acklist = new ConcurrentHashMap<>();
     	int equal=0;
@@ -217,7 +208,6 @@ public class Server implements RemoteServerInterface {
 			}
         }
 		//Compare received Value;
-    	FunctionRegister receivedRegister=null;
 		for(int i=0; i<acklist.size();i++) {
 			if(acklist.get(nameServer).myEquals(acklist.get("server"+(i+1)))) {
 				equal++;
@@ -230,18 +220,18 @@ public class Server implements RemoteServerInterface {
     	if(equal<=(totalServerNumber + 2) / 2) {
     		System.out.println("Equals values == "+equal);
     		System.out.println("There are "+different+" values");
-			return;
+			return false;
 		}
     	
-        
-        
-        
-        //Authenticated Double-Echo Broadcast page 118 Ready
-    	//CHANGED
-        //register=new FunctionRegister(clientName, publickey, readID, writeTS, nameServer);
+    	return true;
+    }
+
+    private boolean registerReady(FunctionRegister register) throws RemoteException{
+    	//Authenticated Double-Echo Broadcast page 118 Ready
     	
-    	equal=0;
-    	different=0;
+    	final ConcurrentHashMap<String, FunctionRegister> acklist = new ConcurrentHashMap<>();
+    	int equal=0;
+    	int different=0;
     	for (int i = 0; i < servers.size(); i++) {
     		if((i+1)==serverNumber) {
     			FunctionRegister registerReturn=sendEchoRegister(register);
@@ -271,7 +261,6 @@ public class Server implements RemoteServerInterface {
 			}
         }
 		//Compare received Value;
-    	receivedRegister=null;
 		for(int i=0; i<acklist.size();i++) {
 			if(acklist.get(nameServer).myEquals(acklist.get("server"+(i+1)))) {
 				equal++;
@@ -284,10 +273,82 @@ public class Server implements RemoteServerInterface {
     	if(equal<=(totalServerNumber + 2) / 2) {
     		System.out.println("Equals values == "+equal);
     		System.out.println("There are "+different+" values");
-			return;
+			return false;
 		}
-        
-    	*/
+    	return true;
+    }
+    private boolean registerDelivery(FunctionRegister register) throws RemoteException{
+    	//Authenticated Double-Echo Broadcast page 118 Delievery
+
+    	final ConcurrentHashMap<String, FunctionRegister> acklist = new ConcurrentHashMap<>();
+    	int equal=0;
+    	int different=0;
+    	for (int i = 0; i < servers.size(); i++) {
+    		if((i+1)==serverNumber) {
+    			FunctionRegister registerReturn=sendEchoRegister(register);
+    			acklist.put(nameServer, registerReturn);
+    			continue;
+    		}
+    		final int index=i;
+    		service.execute(() -> {
+	    		try {
+	    			
+	    			FunctionRegister registerReturn=servers.get(index).sendEchoRegister(register);
+	    			acklist.put("server"+(index+1), registerReturn);
+	
+	            } catch (RemoteException e) {
+	                System.out.println("Connection fail...");
+	                System.out.println("Server[" + (index+1) + "] connection failed");
+	            }
+    		});
+    	}
+    	//Wait for values;
+    	while (!(acklist.keySet().size() > (totalServerNumber + 2) / 2)) { //(N+f)/2
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+		//Compare received Value;
+		for(int i=0; i<acklist.size();i++) {
+			if(acklist.get(nameServer).myEquals(acklist.get("server"+(i+1)))) {
+				equal++;
+			}else{
+				different++;
+			}
+			
+	    }
+		//if there is no more than 5 equals value, then operation is cancelled;
+    	if(equal<=(totalServerNumber + 2) / 2) {
+    		System.out.println("Equals values == "+equal);
+    		System.out.println("There are "+different+" values");
+			return false;
+		}
+    	return true;
+    }
+    
+    
+    public void register(String clientName, PublicKey publickey) throws RemoteException {
+    	
+    	if (isServerCrashed())
+            throw new RemoteException();
+    	
+    	int readID=rid+1;
+    	int writeTS=wts+1;
+    	
+    	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, nameServer);
+    	
+    	try{
+	    	if(!(registerEcho(register)||registerReady(register))){
+	    		System.out.println("Error with message and echo message!");
+	    		return;
+	    	}
+    	}catch(RemoteException e){
+    		System.out.println("RemoteException error... Error with message and echo message!");
+    		return;
+    	}
     	
     	
     	
@@ -323,56 +384,15 @@ public class Server implements RemoteServerInterface {
     	
     	
     	
-    	/*
-        //Authenticated Double-Echo Broadcast page 118 Delievery
-    	//CHANGED
-        //register=new FunctionRegister(clientName, publickey, readID, writeTS, nameServer);
-    	
-    	for (int i = 0; i < servers.size(); i++) {
-    		if((i+1)==serverNumber) {
-    			FunctionRegister registerReturn=sendEchoRegister(register);
-    			acklist.put(nameServer, registerReturn);
-    			continue;
-    		}
-    		final int index=i;
-    		service.execute(() -> {
-	    		try {
-	    			
-	    			FunctionRegister registerReturn=servers.get(index).sendEchoRegister(register);
-	    			acklist.put("server"+(index+1), registerReturn);
-	
-	            } catch (RemoteException e) {
-	                System.out.println("Connection fail...");
-	                System.out.println("Server[" + (index+1) + "] connection failed");
-	            }
-    		});
+        try{
+	    	if(!registerDelivery(register)){
+	    		System.out.println("Error with delivery message!");
+	    		return;
+	    	}
+    	}catch(RemoteException e){
+    		System.out.println("RemoteException error... Error with delivery message!");
+    		return;
     	}
-    	//Wait for values;
-    	while (!(acklist.keySet().size() > (totalServerNumber + 2) / 2)) { //(N+f)/2
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-        }
-		//Compare received Value;
-    	receivedRegister=null;
-		for(int i=0; i<acklist.size();i++) {
-			if(acklist.get(nameServer).myEquals(acklist.get("server"+(i+1)))) {
-				equal++;
-			}else{
-				different++;
-			}
-			
-	    }
-		//if there is no more than 5 equals value, then operation is cancelled;
-    	if(equal<=(totalServerNumber + 2) / 2) {
-    		System.out.println("Equals values == "+equal);
-    		System.out.println("There are "+different+" values");
-			return;
-		}
-		*/
     	
     }
 
@@ -615,28 +635,30 @@ public class Server implements RemoteServerInterface {
     
     
 	//Authenticated Double-Echo Broadcast page 118 for register
-	//CHANGED
+
 	@Override
 	public FunctionRegister sendEchoRegister(FunctionRegister register) throws RemoteException {
-		if(!sentEchoRegister) {
-			//send acho to all servers
-			//registerEchoMessage.put(nameServer, register);
-			this.sentEchoRegister=true;
-		}
-		return register;
+	
+		//send acho to all servers
+		//registerEchoMessage.put(nameServer, register);
+		//this.sentEchoRegister=true;
+		registerEcho=register;
+		
+		
+		return registerEcho;
 		
 	}
 	@Override
 	public FunctionRegister sendReadyRegister(FunctionRegister register) throws RemoteException {
 		
-		this.sentReadyRegister=true;
-		return null;
+		//this.sentReadyRegister=true;
+		return register;
 	}
 	@Override
 	public FunctionRegister sendDeliveryRegister(FunctionRegister register) throws RemoteException {
 		
-		this.sentReadyRegister=true;
-		return null;
+		//this.sentReadyRegister=true;
+		return register;
 	}
     
 

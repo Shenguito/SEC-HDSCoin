@@ -282,7 +282,7 @@ public class Client {
 
         if (pendingTransaction.size() == 0) {
             System.out.println("You do not have any pending transaction. Make a check first...");
-            return true;
+            return false;
         }
 
         final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();

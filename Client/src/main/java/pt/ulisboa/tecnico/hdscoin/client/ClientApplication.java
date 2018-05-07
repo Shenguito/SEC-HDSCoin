@@ -106,8 +106,8 @@ public class ClientApplication {
 				    				continue;
 				    			}
 				    			chosenNumbers.add(chosenNumber);
-				    			client.receive(chosenNumber);
-								System.out.println("RECEIVED " + chosenNumber);
+				    			if(!client.receive(chosenNumber))
+				    				System.out.println("RECEIVED " + chosenNumber);
 			    			}
 			    			client.removePendingTransaction();
 			    		}else if(option.equals("4")) {
