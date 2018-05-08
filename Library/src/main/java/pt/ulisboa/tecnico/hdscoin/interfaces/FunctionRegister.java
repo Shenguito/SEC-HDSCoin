@@ -7,18 +7,18 @@ public class FunctionRegister implements Serializable{
 	private String clientName;
 	private PublicKey publicKey;
 	private int rid;
-	private String serverOrigim;
+	private String serverOrigin;
 	private boolean echo;
 	private boolean ready;
 	private boolean delivery;
 	public FunctionRegister() {
 		
 	}
-	public FunctionRegister(String clientName, PublicKey publicKey, int rid, String serverOrigim) {
+	public FunctionRegister(String clientName, PublicKey publicKey, int rid, String serverOrigin) {
 		this.clientName=clientName;
 		this.publicKey=publicKey;
 		this.rid=rid;
-		this.serverOrigim=serverOrigim;
+		this.serverOrigin=serverOrigin;
 		this.echo=false;
 		this.ready=false;
 		this.delivery=false;
@@ -41,11 +41,11 @@ public class FunctionRegister implements Serializable{
 	public void setDelivery(boolean delivery) {
 		this.delivery = delivery;
 	}
-	public String getServerOrigim() {
-		return serverOrigim;
+	public String getServerOrigin() {
+		return serverOrigin;
 	}
-	public void setServerOrigim(String serverOrigim) {
-		this.serverOrigim = serverOrigim;
+	public void setServerOrigin(String serverOrigin) {
+		this.serverOrigin = serverOrigin;
 	}
 	public int getRid() {
 		return rid;
@@ -69,11 +69,12 @@ public class FunctionRegister implements Serializable{
 	public boolean myEquals(FunctionRegister arg0) {
 		if(publicKey.equals(arg0.getPublicKey())&&
 				clientName.equals(arg0.getClientName())&&
-				rid==arg0.getRid()&&
-				serverOrigim.equals(getServerOrigim())){
+				serverOrigin.equals(getServerOrigin())){
 			return true;
 		}
 	    return false;
 	}
-	
+	public String toString(){
+		return "ClientName: "+clientName+"\tByServer: "+serverOrigin;
+	}
 }

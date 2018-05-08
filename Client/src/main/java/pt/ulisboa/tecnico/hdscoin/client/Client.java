@@ -11,6 +11,7 @@ import java.security.PublicKey;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -81,30 +82,40 @@ public class Client {
     }
 
     public boolean register() {
-
-
+    	int registerValue=0;
+    	CountDownLatch readyThreadCounter = new CountDownLatch(5);
         for (int i = 0; i < numServers(); i++) {
-
+        	final int index=i;
+        	service.execute(() -> {
             try {
-                servers.get(i).register(clientName, manager.getPublicKey());
+                if(servers.get(index).register(clientName, manager.getPublicKey())){
+                	readyThreadCounter.countDown();
+                }
                 try {
-                	serversPublicKey.put("server"+(i+1), manager.getPublicKeyBy("server"+(i+1)));
+                	serversPublicKey.put("server"+(index+1), manager.getPublicKeyBy("server"+(index+1)));
                 } catch (Exception e) {
                     System.out.println("publickey error");
                     e.printStackTrace();
                 }
 
-                System.out.println("You are registered by server[" + (i+1) + "]");
+                System.out.println("You are registered by server[" + (index+1) + "]");
 
             } catch (RemoteException e) {
                 System.out.println("Connection fail...");
-                System.out.println("Server[" + (i+1) + "] connection failed");
+                System.out.println("Server[" + (index+1) + "] connection failed");
             } catch(Exception e1){
                 e1.printStackTrace();
             	System.out.println("Exception1: "+e1);
             }
-
+        	});
         }
+        try {
+			readyThreadCounter.await();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
         return true;
     }
 
@@ -145,9 +156,9 @@ public class Client {
                         }
                 );
             }
-            while (!(acklist.keySet().size() > (numServers() + 1) / 2) && !(failedacklist.keySet().size() > (numServers() + 1) / 2)) {
+            while (!(acklist.keySet().size() > (numServers() + 2) / 2) && !(failedacklist.keySet().size() > (numServers() + 2) / 2)) {
             }
-            if(acklist.keySet().size() > (numServers() + 1) / 2) {
+            if(acklist.keySet().size() > (numServers() + 2) / 2) {
                 System.out.println("SUCCESS");
                 return true;
             } else {
@@ -204,7 +215,7 @@ public class Client {
 
 
             }
-            while (!(readList.keySet().size() > (numServers() + 1) / 2)) {
+            while (!(readList.keySet().size() > (numServers() + 2) / 2)) {
             }
             return enforceCheck(checkedName, readList, msg, false);
         } catch (Exception e) {
@@ -249,7 +260,7 @@ public class Client {
         }
         //not necessary... since you obtained always a response by RMI
         //if you don't get a response by server you get a exception.
-        while (!(acklist.keySet().size() > (numServers() + 1) / 2)) {
+        while (!(acklist.keySet().size() > (numServers() + 2) / 2)) {
         }
         if (!isAudit) {
             System.out.println(checkedName + "'s balance is: " + highestVal.getAmount());
@@ -312,7 +323,7 @@ public class Client {
                     }
                 });
             }
-            while (!(acklist.keySet().size() > (numServers() + 1) / 2)) {
+            while (!(acklist.keySet().size() > (numServers() + 2) / 2)) {
             }
             System.out.println("SUCCESS");
             return true;
@@ -353,7 +364,7 @@ public class Client {
                 });
             }
 
-            while (!(readList.keySet().size() > (numServers() + 1) / 2)) {
+            while (!(readList.keySet().size() > (numServers() + 2) / 2)) {
             }
             enforceCheck(name, readList, msg, true);
 
@@ -373,4 +384,5 @@ public class Client {
     public void removePendingTransaction() {
         pendingTransaction = new ArrayList<Transaction>();
     }
+
 }

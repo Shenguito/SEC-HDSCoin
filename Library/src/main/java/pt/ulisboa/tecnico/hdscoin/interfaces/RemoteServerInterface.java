@@ -6,10 +6,11 @@ import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.PublicKey;
+import java.util.ArrayList;
 
 
 public interface RemoteServerInterface extends Remote{
-	void register(String clientName, PublicKey pubkey) throws RemoteException;
+	boolean register(String clientName, PublicKey pubkey) throws RemoteException;
 	CipheredMessage send(CipheredMessage msg) throws RemoteException;
     CipheredMessage check(CipheredMessage msg) throws RemoteException;
     CipheredMessage receive(CipheredMessage msg) throws RemoteException;
@@ -20,7 +21,7 @@ public interface RemoteServerInterface extends Remote{
     
 	//Authenticated Double-Echo Broadcast page 118 for register
     FunctionRegister sendEchoRegister(FunctionRegister register) throws RemoteException;
-    FunctionRegister sendReadyRegister(FunctionRegister register) throws RemoteException;
+    ArrayList<FunctionRegister> sendReadyRegister(FunctionRegister register) throws RemoteException;
     FunctionRegister sendDeliveryRegister(FunctionRegister register) throws RemoteException;
     
     
