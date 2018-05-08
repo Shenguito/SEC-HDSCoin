@@ -49,7 +49,6 @@ public class ServerApplication {
 						try {
 							servers[i].connectServer();
 						} catch (MalformedURLException | NotBoundException e) {
-							
 							e.printStackTrace();
 						}
 					}
@@ -58,30 +57,44 @@ public class ServerApplication {
 				}else {
 					System.out.println("\nThe '"+confirm+ "' is not a valid number!");
 				}
-				
-				String chosenServer=reader.nextLine();
-				int chosenServerInt=0;
-				try{
-					chosenServerInt=Integer.parseInt(chosenServer.trim());
-				}catch(Exception e){
-					System.out.println("'"+chosenServer.trim()+"'"+" is not correct!");
-					continue;
-				}
-				boolean manageServer=true;
-				while(manageServer){
-					System.out.println("1-crash");
-					System.out.println("2-recover");
+				boolean makecommand=true;
+				while(makecommand) {
+					System.out.println("\nChose a number to make command to");
+					for(int s=1;s<=serversize;s++)
+						System.out.println(s+"-server"+s);
 					System.out.println("0-exit");
-					String option=reader.nextLine();
-					if(Integer.parseInt(option.trim())==1){
-						servers[chosenServerInt].setServerFault(true);
-					}else if(Integer.parseInt(option.trim())==2){
-						servers[chosenServerInt].setServerFault(false);
-					}else if(Integer.parseInt(option.trim())==0){
-						manageServer=false;
-						break;
-					}else{
-						System.out.println("\nThe '"+option+ "' is not a valid number!");
+					
+					String chosenServer=reader.nextLine();
+					int chosenServerInt=0;
+					try{
+						chosenServerInt=Integer.parseInt(chosenServer.trim());
+					}catch(Exception e){
+						System.out.println("'"+chosenServer.trim()+"'"+" is not correct!");
+						continue;
+					}
+					if(chosenServerInt==0) {
+						makecommand=false;
+						continue;
+					}else if((chosenServerInt>serversize||chosenServerInt<1)) {
+						System.out.println("\nThe '"+chosenServerInt+ "' is not a valid number!");
+						continue;
+					}
+					boolean manageServer=true;
+					while(manageServer){
+						System.out.println("1-crash");
+						System.out.println("2-recover");
+						System.out.println("0-exit");
+						String option=reader.nextLine();
+						if(Integer.parseInt(option.trim())==1){
+							servers[chosenServerInt].setServerFault(true);
+						}else if(Integer.parseInt(option.trim())==2){
+							servers[chosenServerInt].setServerFault(false);
+						}else if(Integer.parseInt(option.trim())==0){
+							manageServer=false;
+							break;
+						}else{
+							System.out.println("\nThe '"+option+ "' is not a valid number!");
+						}
 					}
 				}
 			}

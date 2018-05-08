@@ -202,7 +202,7 @@ public class Server implements RemoteServerInterface {
 	    		try {
 	    			FunctionRegister registerReturn=servers.get(index).sendEchoRegister(register);
 	    			for(int j=0;registerReturn==null&&j<10;j++){
-	    				
+	    				//TODO  in case after 10 tries return null, BUG
 	    				registerReturn=servers.get(index).sendEchoRegister(register);
 	    				
 	    			}
@@ -276,8 +276,9 @@ public class Server implements RemoteServerInterface {
     		final int index=i;
     		service.execute(() -> {
 	    		try {
-	    			
 	    			ArrayList<FunctionRegister> registerReturn=servers.get(index).sendReadyRegister(register);
+	    			while(registerReturn.size()<registerReadyMessage.get(nameServer).size())
+	    				registerReturn=servers.get(index).sendReadyRegister(register);
 	    			acklist.put("server"+(index+1), registerReturn);
 	
 	            } catch (RemoteException e) {
@@ -302,9 +303,10 @@ public class Server implements RemoteServerInterface {
 			if(acklist.get(nameServer).size()!=1){
 				for(int j=0; j<acklist.get(nameServer).size();j++){
 					try{
-					if(acklist.get(nameServer).get(j).myEquals(acklist.get("server"+(i+1)).get(j))) {
-						listEqual++;
-					}}catch(Exception e){
+						if(acklist.get(nameServer).get(j).myEquals(acklist.get("server"+(i+1)).get(j))) {
+							listEqual++;
+						}
+					}catch(Exception e){
 						// case others server don't have same list size, same server will get delay
 						e.printStackTrace();
 					}
@@ -395,8 +397,8 @@ public class Server implements RemoteServerInterface {
     	
     	int readID=rid+1;
     	
-    	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, nameServer);
-    	
+    	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, totalServerNumber);
+    	/*
     	//ECHO
     	try{
 	    	if(!(registerEcho(register))){
@@ -418,7 +420,7 @@ public class Server implements RemoteServerInterface {
     		System.out.println("RemoteException error... Error with ready and delivery message!");
     		return false;
     	}
-
+*/
         if (!storage.checkFileExists(clientName)) {
             try {
                 Ledger ledger = new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>());
@@ -719,7 +721,6 @@ public class Server implements RemoteServerInterface {
     			registerEchoMessage.put(register.getServerOrigin(), tmpList);
     		}
     	}
-		//3x to ensure
 		
 		ArrayList<FunctionRegister> tmpList=registerEchoMessage.get(nameServer);
 		if(tmpList!=null){
@@ -735,15 +736,15 @@ public class Server implements RemoteServerInterface {
 	@Override
 	public ArrayList<FunctionRegister> sendReadyRegister(FunctionRegister register) throws RemoteException {
 		//this.sentReadyRegister=true;
-		if(registerReadyMessage.get(nameServer)==null){
+		if(registerReadyMessage.get(register.getServerOrigin())==null){
     		ArrayList<FunctionRegister> tmpList=new ArrayList<FunctionRegister>();
     		tmpList.add(register);
-    		registerReadyMessage.put(nameServer, tmpList);
+    		registerReadyMessage.put(register.getServerOrigin(), tmpList);
     	}else{
-    		ArrayList<FunctionRegister> tmpList=registerReadyMessage.get(nameServer);
+    		ArrayList<FunctionRegister> tmpList=registerReadyMessage.get(register.getServerOrigin());
 			if(!tmpList.contains(register)){
 				tmpList.add(register);
-				registerReadyMessage.put(nameServer, tmpList);
+				registerReadyMessage.put(register.getServerOrigin(), tmpList);
 			}
     	}
 		return registerReadyMessage.get(nameServer);

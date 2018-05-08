@@ -90,6 +90,7 @@ public class Client {
             try {
                 if(servers.get(index).register(clientName, manager.getPublicKey())){
                 	readyThreadCounter.countDown();
+                	System.out.println("countdown");
                 }
                 try {
                 	serversPublicKey.put("server"+(index+1), manager.getPublicKeyBy("server"+(index+1)));
@@ -110,9 +111,9 @@ public class Client {
         	});
         }
         try {
+        	System.out.println("Waiting");
 			readyThreadCounter.await();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
