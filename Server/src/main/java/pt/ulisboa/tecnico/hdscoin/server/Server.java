@@ -88,6 +88,7 @@ public class Server implements RemoteServerInterface {
     private int serverNumber;
     private int totalServerNumber;
     private int taskCounter;
+    private boolean byzantine=false;
     
     private List<RemoteServerInterface> servers;
 
@@ -113,7 +114,7 @@ public class Server implements RemoteServerInterface {
         try {
             keyPairManager = new KeystoreManager("/server.jks", "server123");
             serverKeyPair = keyPairManager.getKeyPair("server"+number, "server"+number+"123");
-            manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
+            manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager, false, 0);
 
         } catch (Exception e) {
             System.out.println("KeyPair Error");
@@ -302,7 +303,10 @@ public class Server implements RemoteServerInterface {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    message = new Message(serverKeyPair.getPublic(), true, sender.getLastWriteTimestamp());
+                    if(byzantine)
+                    	message = new Message(serverKeyPair.getPublic(), false, sender.getLastWriteTimestamp());
+                    else
+                    	message = new Message(serverKeyPair.getPublic(), true, sender.getLastWriteTimestamp());
                 }
             } else System.out.println("Message out of date - MSG: " + decipheredMessage.getTimestamp() + " TIME: " + sender.getLastWriteTimestamp());
 
@@ -890,6 +894,11 @@ public class Server implements RemoteServerInterface {
 		//this.sentReadyRegister=true;
 		return register;
 	}
+	/*@Override
+	public void setByzantine(boolean mode) {
+		byzantine = mode;
+		
+	}*/
     
 
 }

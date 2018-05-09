@@ -19,7 +19,7 @@ public class ClientTest {
 	@Test
 	public void register() {
 		try {
-			Client client=new Client("localhost", "alice", "alice123");
+			Client client=new Client("localhost", "alice", "alice123", false, 0);
 			assertTrue(client.register());
 		} catch (RemoteException e) {
 			e.printStackTrace();
@@ -33,8 +33,8 @@ public class ClientTest {
 	@Test
 	public void send() {
 		try {
-			alice=new Client("localhost", "alice", "alice123");
-			bob=new Client("localhost", "bob", "bob123");
+			alice=new Client("localhost", "alice", "alice123", false, 0);
+			bob=new Client("localhost", "bob", "bob123", false, 0);
 			assertTrue(alice.register());
 			assertTrue(bob.register());
 			System.out.println("BLABA");
@@ -55,8 +55,8 @@ public class ClientTest {
 	@Test
 	public void check() {
 		try {
-			alice=new Client("localhost", "alice", "alice123");
-			bob=new Client("localhost", "bob", "bob123");
+			alice=new Client("localhost", "alice", "alice123", false, 0);
+			bob=new Client("localhost", "bob", "bob123", false, 0);
 			assertTrue(alice.register());
 			assertTrue(bob.register());
 			alice.check("alice");
@@ -80,8 +80,8 @@ public class ClientTest {
 	@Test
 	public void receive() {
 		try {
-			alice=new Client("localhost", "alice", "alice123");
-			bob=new Client("localhost", "bob", "bob123");
+			alice=new Client("localhost", "alice", "alice123", false, 0);
+			bob=new Client("localhost", "bob", "bob123", false, 0);
 			assertTrue(alice.register());
 			assertTrue(bob.register());
 			alice.check("alice");
@@ -112,8 +112,8 @@ public class ClientTest {
 	@Test
 	public void audit() {
 		try {
-			alice=new Client("localhost", "alice", "alice123");
-			bob=new Client("localhost", "bob", "bob123");
+			alice=new Client("localhost", "alice", "alice123", false, 0);
+			bob=new Client("localhost", "bob", "bob123", false, 0);
 			assertTrue(alice.register());
 			assertTrue(bob.register());
 			alice.check("alice");

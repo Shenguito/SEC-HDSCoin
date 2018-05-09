@@ -40,5 +40,6 @@ public interface RemoteServerInterface extends Remote{
     void echoBroadcast(CipheredMessage msg) throws RemoteException;
     void readyBroadcast(CipheredMessage msg) throws RemoteException;
     void deliveryBroadcast(CipheredMessage msg) throws RemoteException;
+	//void setByzantine(boolean mode) throws RemoteException;
     
 }
