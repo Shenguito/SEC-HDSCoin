@@ -225,10 +225,19 @@ public class Client {
             return false;
         }
     }
+    
 
     private boolean enforceCheck(StringBuilder checkedName, ConcurrentHashMap<String, Message> readList, Message msg, boolean isAudit) {
         System.out.println("Enforcing Read");
         Message highestVal = readList.values().stream().max(Comparator.comparing(Message::getTimestamp)).get();
+        Collection<Message> values = readList.values();
+        boolean allSame=true;
+        for(Message m : values) {
+        	if(m.getTimestamp()!=highestVal.getTimestamp())
+        		allSame=false;
+        }
+        	
+        
         readID++;
         if(writestamps.containsKey(checkedName.toString())) writestamps.put(checkedName.toString(), highestVal.getTimestamp() + 1);
         else writestamps.put(checkedName.toString(),  highestVal.getTimestamp() + 1);
@@ -245,20 +254,23 @@ public class Client {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        for (int i = 0; i < numServers(); i++) {
-        	final CipheredMessage newCipheredMessage = manager.makeCipheredMessage(newMsg, serversPublicKey.get("server"+(i+1)));
-            final int index = i;
-            service.execute(() ->
-            {
-                try {
-                    CipheredMessage response = servers.get(index).clientHasRead(newCipheredMessage);
-                    Message responseDeciphered = manager.decipherCipheredMessage(response);
-                    System.out.println("Success from server " + (index + 1) + ": " + responseDeciphered.isConfirm());
-                    if (responseDeciphered.isConfirm()) acklist.put("" + index, responseDeciphered);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            });
+        
+        if(!allSame) {
+	        for (int i = 0; i < numServers(); i++) {
+	        	final CipheredMessage newCipheredMessage = manager.makeCipheredMessage(newMsg, serversPublicKey.get("server"+(i+1)));
+	            final int index = i;
+	            service.execute(() ->
+	            {
+	                try {
+	                    CipheredMessage response = servers.get(index).clientHasRead(newCipheredMessage);
+	                    Message responseDeciphered = manager.decipherCipheredMessage(response);
+	                    System.out.println("Success from server " + (index + 1) + ": " + responseDeciphered.isConfirm());
+	                    if (responseDeciphered.isConfirm()) acklist.put("" + index, responseDeciphered);
+	                } catch (RemoteException e) {
+	                    e.printStackTrace();
+	                }
+	            });
+	        }
         }
         //not necessary... since you obtained always a response by RMI
         //if you don't get a response by server you get a exception.

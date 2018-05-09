@@ -443,6 +443,8 @@ public class Server implements RemoteServerInterface {
 
         Ledger toBeUpdated = storage.readClient(clients.get(decipheredMessage.getCheckedKey()));
         Message message = new Message(serverKeyPair.getPublic(), false, toBeUpdated.getLastWriteTimestamp());
+        //verify here if n+f/2 have toBeUpdated.getLastWriteTimestamp() as last time stamp to avoid wrong timestamp from client?
+       
         if(toBeUpdated.getLastWriteTimestamp() < decipheredMessage.getTimestamp()) {
             if (decipheredMessage.getTransactions() != null) {
                 if (decipheredMessage.isAudit())
