@@ -75,12 +75,12 @@ public class Server implements RemoteServerInterface {
 
 	List<BroadcastMessage> broadcastMessageEcho = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
 	List<BroadcastMessage> broadcastMessageReady = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
-	List<BroadcastMessage> broadcastMessageDelivery = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
+	List<Message> broadcastMessageDelivery = Collections.synchronizedList(new ArrayList<Message>());
 
 	
-	private CountDownLatch echoCountDown = new CountDownLatch(3);
-	private CountDownLatch readyCountDown = new CountDownLatch(3);
-	private CountDownLatch deliveryCountDown = new CountDownLatch(3);
+	private CountDownLatch echoCountDown = new CountDownLatch(3); 		//[(N+f)/2]+1
+	private CountDownLatch readyCountDown = new CountDownLatch(2);		//f+1
+	private CountDownLatch deliveryCountDown = new CountDownLatch(3);	//2f+1
 	
 
 
@@ -198,32 +198,7 @@ public class Server implements RemoteServerInterface {
     	int readID=rid+1;
     	
     	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, totalServerNumber);
-    	/*
-    	//ECHO
-    	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, nameServer);
-
-    	//ECHO
-    	try{
-	    	if(!(registerEcho(register))){
-	    		System.out.println("Error with message and echo message!");
-	    		return false;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with message and echo message!");
-    		return false;
-    	}
     	
-    	//READY
-    	try{
-	    	if(!(registerReady(register))){
-	    		System.out.println("Error with ready and delivery message!");
-	    		return false;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with ready and delivery message!");
-    		return false;
-    	}
-*/
         if (!storage.checkFileExists(clientName)) {
             try {
                 Ledger ledger = new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>());
@@ -254,17 +229,7 @@ public class Server implements RemoteServerInterface {
         }
     	
     	
-    	/*TODO not necessary part2?
-        try{
-	    	if(!registerDelivery(register)){
-	    		System.out.println("Error with delivery message!");
-	    		return;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with delivery message!");
-    		return;
-    	}
-    	*/
+    	
     	return true;
     }
 
@@ -279,7 +244,14 @@ public class Server implements RemoteServerInterface {
 
         //Broadcast
         broadcastEcho(manager.getDigitalSign(msg));
-
+        try {
+        	//System.out.println("Waiting for echo...");
+        	deliveryCountDown.await();
+        	broadcastMessageDelivery.add(decipheredMessage);
+        	//System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
 
         Message message = new Message(serverKeyPair.getPublic(), false, -1); //case the client does not exist
@@ -330,7 +302,14 @@ public class Server implements RemoteServerInterface {
 
         //Broadcast
         broadcastEcho(manager.getDigitalSign(msg));
-
+        try {
+        	//System.out.println("Waiting for echo...");
+        	deliveryCountDown.await();
+        	broadcastMessageDelivery.add(decipheredMessage);
+        	//System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
         Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>(), decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), 0); //case the client does not exist
         if (storage.checkFileExists(clients.get(decipheredMessage.getDestination()))) {
@@ -358,7 +337,14 @@ public class Server implements RemoteServerInterface {
 
         //Broadcast
         broadcastEcho(manager.getDigitalSign(msg));
-
+        try {
+        	//System.out.println("Waiting for echo...");
+        	deliveryCountDown.await();
+        	broadcastMessageDelivery.add(decipheredMessage);
+        	//System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
 
         Message message = new Message(serverKeyPair.getPublic(), false, 0);
@@ -417,6 +403,16 @@ public class Server implements RemoteServerInterface {
 
         //Broadcast
         broadcastEcho(manager.getDigitalSign(msg));
+        
+        
+        try {
+        	//System.out.println("Waiting for echo...");
+        	deliveryCountDown.await();
+        	broadcastMessageDelivery.add(decipheredMessage);
+        	//System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
         
         
         Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
@@ -489,7 +485,6 @@ public class Server implements RemoteServerInterface {
     
     private void broadcastEcho(IntegrityCheck integrityCheck) {
         final BroadcastMessage checkBroadcast=new BroadcastMessage(integrityCheck, totalServerNumber);
-        
         //System.out.println("Digital signature stored: "+integrityCheck.getStringDigitalSignature());
         
         echoSelf(checkBroadcast);
@@ -556,6 +551,7 @@ public class Server implements RemoteServerInterface {
 			checkReadyBroadcast.readyServer(nameServer);
 			broadcastMessageReady.add(checkReadyBroadcast);
 			readyCountDown.countDown();
+			deliveryCountDown.countDown();
 			for (int i = 0; i < servers.size(); i++) {
 	    		if((i+1)==serverNumber) {
 	    			continue;
@@ -635,6 +631,7 @@ public class Server implements RemoteServerInterface {
 						tmp.echoServer(s);
 						broadcastMessageReady.add(tmp);
 						readyCountDown.countDown();
+						deliveryCountDown.countDown();
 					}
 
 			}
@@ -649,6 +646,7 @@ public class Server implements RemoteServerInterface {
 	    						!broadcastMessageReady.get(i).serverReadied(s)){
 	    					broadcastMessageReady.get(i).readyServer(s);
 				    		readyCountDown.countDown();
+				    		deliveryCountDown.countDown();
 						}
 	    		}
     		//else nothing
