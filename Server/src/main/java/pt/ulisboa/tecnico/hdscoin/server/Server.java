@@ -65,11 +65,11 @@ public class Server implements RemoteServerInterface {
 	
 	//Authenticated Double-Echo Broadcast based for message exchange
 	private ArrayList<BroadcastMessage> broadcastMessageEcho=new ArrayList<BroadcastMessage>(); //receive
-	private CountDownLatch echoCountDown = new CountDownLatch(5);
+	private CountDownLatch echoCountDown = new CountDownLatch(3);
 	private ArrayList<BroadcastMessage> broadcastMessageReady=new ArrayList<BroadcastMessage>(); //order
-	private CountDownLatch readyCountDown = new CountDownLatch(5);
+	private CountDownLatch readyCountDown = new CountDownLatch(3);
 	private ArrayList<BroadcastMessage> broadcastMessageDelivery=new ArrayList<BroadcastMessage>(); //write
-	private CountDownLatch deliveryCountDown = new CountDownLatch(5);
+	private CountDownLatch deliveryCountDown = new CountDownLatch(3);
 	
 	/*TODO case above does not work
 	List<BroadcastMessage> broadcastMessageEcho = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
@@ -326,7 +326,7 @@ public class Server implements RemoteServerInterface {
         //TODO
         final BroadcastMessage checkBroadcast=new BroadcastMessage(manager.getDigitalSign(msg), totalServerNumber);
         //TODO Sheng
-        //echoSelf(checkBroadcast);
+        echoSelf(checkBroadcast);
         
         
         
@@ -492,32 +492,32 @@ public class Server implements RemoteServerInterface {
     public void echoBroadcast(CipheredMessage msg) throws RemoteException {
     	Message decipheredMessage = manager.decipherCipheredMessage(msg);
     	BroadcastMessage bcm=decipheredMessage.getBcm();
+
     	//if there is no BroadcastMessage, then add and broadcast
     	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getDigitalsign).filter(bcm.getDigitalsign()::equals).findFirst().isPresent()) {
-    		for(String s:serversPublicKey.keySet())
-    			if(serversPublicKey.get(s).equals(decipheredMessage.getDestination())) {
-    				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
-    				tmp.echoServer(s);
-    				broadcastMessageEcho.add(tmp);
-    	    		echoCountDown.countDown();
-					System.out.println("Echo Broadcast add "+s);
-    			}
-    		
+    		//ATTENTION, server x does not store his publickey in his map
+    		if(decipheredMessage.getDestination().equals(manager.getPublicKey())){
+				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
+				for(String s:serversPublicKey.keySet())
+					if(serversPublicKey.get(s).equals(decipheredMessage.getSender())){
+						tmp.echoServer(s);
+						broadcastMessageEcho.add(tmp);
+			    		echoCountDown.countDown();
+					}
+				
+			}
     	//else it only turn it true
     	}else {
     		//Compare boolean, 
     		//if there is a server that becomes true and in my list it isn't 
-
     		for(int i=0;i<broadcastMessageEcho.size();i++)
 	    		if(bcm.getDigitalsign().equals(broadcastMessageEcho.get(i).getDigitalsign())) {
 	    			for(String s:serversPublicKey.keySet())
-	        			if(serversPublicKey.get(s).equals(decipheredMessage.getDestination())&&
-	    	    				broadcastMessageEcho.get(i).serverEchoed(s)) {
-	        				broadcastMessageEcho.get(i).echoServer(s);
-	        				echoCountDown.countDown();
-	    					System.out.println("Echo Broadcast add "+s);
-	        			}
-	    			
+	    				if(serversPublicKey.get(s).equals(decipheredMessage.getSender())&&
+	    						broadcastMessageEcho.get(i).serverEchoed(s)){
+	    					broadcastMessageEcho.get(i).echoServer(s);
+				    		echoCountDown.countDown();
+						}
 	    		}
     		//else nothing
     	}
@@ -544,17 +544,19 @@ public class Server implements RemoteServerInterface {
             		echoCountDown.countDown();
         			continue;
         		}
-        		final int index=i+1;
+        		final int index=i;
         		service.execute(() -> {
         			
     	    		try {
-    	    			Message msg=new Message(manager.getPublicKey(), manager.getPublicKeyBy("server"+(index)), checkBroadcast);
-            			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index)));
+    	    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
+    	    			Message msg=new Message(manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkBroadcast);
+            			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
+            			
 	    				servers.get(index).echoBroadcast(cipheredMessage);
     	
     	            } catch (RemoteException e) {
     	                System.out.println("Connection fail...");
-    	                System.out.println("Server[" + (index) + "] connection failed");
+    	                System.out.println("Server[" + (index+1) + "] connection failed");
     	            } catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -639,7 +641,7 @@ public class Server implements RemoteServerInterface {
     	}
     	//Wait for values;
     	//TODO CountDownLatch???
-    	while (!(acklist.keySet().size() > (totalServerNumber + 2) / 2)) { //(N+f)/2
+    	while (!(acklist.keySet().size() > (totalServerNumber + 1) / 2)) { //(N+f)/2
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
@@ -663,7 +665,7 @@ public class Server implements RemoteServerInterface {
 			
 	    }
 		//if there is no more than 5 equals value, then operation is cancelled;
-    	if(equal<=(totalServerNumber + 2) / 2) {
+    	if(equal<=(totalServerNumber + 1) / 2) {
     		System.out.println("Equals values == "+equal);
     		System.out.println("There are "+different+" values");
 			return false;
@@ -711,7 +713,7 @@ public class Server implements RemoteServerInterface {
     		});
     	}
     	//Wait for values;
-    	while (!(acklist.keySet().size() > (totalServerNumber + 2) / 2)) { //(N+f)/2
+    	while (!(acklist.keySet().size() > (totalServerNumber + 1) / 2)) { //(N+f)/2
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
@@ -751,7 +753,7 @@ public class Server implements RemoteServerInterface {
 	    }
 		//if there is no more than 5 equals value, then operation is cancelled;
 		//TODO maybe we can put it with timeout instead of 1 try
-    	if(equal<=(totalServerNumber + 2) / 2) {
+    	if(equal<=(totalServerNumber + 1) / 2) {
     		System.out.println("Equals values == "+equal);
     		System.out.println("There are "+different+" values");
 			return false;
@@ -786,7 +788,7 @@ public class Server implements RemoteServerInterface {
     		});
     	}
     	//Wait for values;
-    	while (!(acklist.keySet().size() > (totalServerNumber + 2) / 2)) { //(N+f)/2
+    	while (!(acklist.keySet().size() > (totalServerNumber + 1) / 2)) { //(N+f)/2
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
@@ -804,7 +806,7 @@ public class Server implements RemoteServerInterface {
 			
 	    }
 		//if there is no more than 5 equals value, then operation is cancelled;
-    	if(equal<=(totalServerNumber + 2) / 2) {
+    	if(equal<=(totalServerNumber + 1) / 2) {
     		System.out.println("Equals values == "+equal);
     		System.out.println("There are "+different+" values");
 			return false;

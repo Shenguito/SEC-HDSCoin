@@ -36,6 +36,7 @@ public class Client {
     //private PublicKey serverPublicKey;
     private boolean isReading = false;
     private long readID = 0;
+    private CountDownLatch readyThreadCounter = new CountDownLatch(3);
 
     private HashMap<String, Long> writestamps = new HashMap<>();
 
@@ -83,7 +84,7 @@ public class Client {
 
     public boolean register() {
     	int registerValue=0;
-    	CountDownLatch readyThreadCounter = new CountDownLatch(5);
+
         for (int i = 0; i < numServers(); i++) {
         	final int index=i;
         	service.execute(() -> {

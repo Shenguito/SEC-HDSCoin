@@ -78,5 +78,14 @@ public class BroadcastMessage implements Serializable{
 				v++;
 		return v;
 	}
+	public int echoServerReceivedSize() {
+		return echo.size();
+	}
+	public int readyServerReceivedSize() {
+		return ready.size();
+	}
+	public int deliveryServerReceivedSize() {
+		return delivery.size();
+	}
 	
 }

@@ -18,7 +18,7 @@ public class ServerApplication {
 	public static void main(String args[]) {
 		
 		try {
-			int serversize = 7;
+			int serversize = 4;
 			
 			Scanner reader = new Scanner(System.in);
 			/*
@@ -44,6 +44,12 @@ public class ServerApplication {
 				System.out.println("1-Confirm.");
 				System.out.println("0-Exit.");
 				String confirm=reader.nextLine();
+				try {
+					Integer.parseInt(confirm.trim());
+				}catch(Exception e) {
+					System.out.println("\nThe '"+confirm+ "' is not a valid number!");
+					continue;
+				}
 				if(Integer.parseInt(confirm.trim())==1) {
 					for(int i=0; i<servers.length; i++){
 						try {
@@ -56,6 +62,7 @@ public class ServerApplication {
 					break;
 				}else {
 					System.out.println("\nThe '"+confirm+ "' is not a valid number!");
+					continue;
 				}
 				boolean makecommand=true;
 				while(makecommand) {
