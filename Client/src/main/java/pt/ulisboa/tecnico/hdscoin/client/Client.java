@@ -40,6 +40,8 @@ public class Client {
     //private PublicKey serverPublicKey;
     private boolean isReading = false;
     private long readID = 0;
+    private CountDownLatch readyThreadCounter = new CountDownLatch(3);
+
     private long writeTimestamp = -1;
 
     ExecutorService service = Executors.newFixedThreadPool(7);
@@ -86,13 +88,14 @@ public class Client {
 
     public boolean register() {
     	int registerValue=0;
-    	CountDownLatch readyThreadCounter = new CountDownLatch(5);
+
         for (int i = 0; i < numServers(); i++) {
         	final int index=i;
         	service.execute(() -> {
             try {
                 if(servers.get(index).register(clientName, manager.getPublicKey())){
                 	readyThreadCounter.countDown();
+                	System.out.println("countdown");
                 }
                 try {
                 	serversPublicKey.put("server"+(index+1), manager.getPublicKeyBy("server"+(index+1)));
@@ -113,9 +116,9 @@ public class Client {
         	});
         }
         try {
+        	System.out.println("Waiting");
 			readyThreadCounter.await();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -123,6 +126,7 @@ public class Client {
     }
 
     public synchronized boolean send(String sendDestination, String sendAmount) {
+        System.out.println("BLA");
         if (getClientName().toUpperCase().equals(sendDestination.toUpperCase())) {
             System.out.println("'" + sendDestination + "'? There is a bit probability being you, don't try to send money to yourself ;)");
             return true;
@@ -225,6 +229,7 @@ public class Client {
             return false;
         }
     }
+
 
     private boolean enforceCheck(StringBuilder checkedName, ConcurrentHashMap<String, Message> readList, ConcurrentHashMap<String, CipheredMessage> readListCiphers, Message msg, boolean isAudit) {
         System.out.println("Enforcing Read");

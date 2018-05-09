@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdscoin.Crypto;
 
+import pt.ulisboa.tecnico.hdscoin.interfaces.BroadcastMessage;
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
 import java.io.Serializable;
@@ -12,7 +13,12 @@ public class Message implements Serializable{
     private byte[] IV;
     private IntegrityCheck originalSig;
     private PublicKey serverSender;
-    private double amount;
+
+    public BroadcastMessage getBcm() {
+		return bcm;
+	}
+
+	private double amount;
     private PublicKey sender;
     private PublicKey destination;
     private PublicKey checkedKey;
@@ -22,6 +28,7 @@ public class Message implements Serializable{
     private String checkedName;
     private long timestamp;
     private boolean isAudit;
+    private BroadcastMessage bcm;
     private Message original;
 
     //Client
@@ -90,6 +97,12 @@ public class Message implements Serializable{
 
     public Message getOriginal() {
         return original;
+    }
+
+    public Message(PublicKey sender, PublicKey destination, BroadcastMessage bcm) {
+    	this.sender=sender;
+    	this.destination=destination;
+    	this.bcm=bcm;
     }
 
     public boolean isAudit() {

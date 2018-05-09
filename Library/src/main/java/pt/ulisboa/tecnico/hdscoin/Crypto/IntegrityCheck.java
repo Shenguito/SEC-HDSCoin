@@ -54,4 +54,13 @@ public class IntegrityCheck implements Serializable{
 	public String toString() {
     	return "["+Arrays.toString(getDigitalSignature())+", "+getNonce()+", "+getTimestamp()+"]";
     }
+    
+    public boolean myEqual(IntegrityCheck ic) {
+    	if(digitalSignature.equals(ic.getStringDigitalSignature())&&
+    			nonce==ic.getNonce()&&
+    			timestamp==ic.getTimestamp()) {
+    		return true;
+    	}
+		return false;
+    }
 }

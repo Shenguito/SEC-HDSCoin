@@ -37,6 +37,7 @@ public class ClientTest {
 			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
+			System.out.println("BLABA");
 			alice.check("alice");
 			bob.check("bob");
 			assertTrue(alice.send("bob", "5.0"));
