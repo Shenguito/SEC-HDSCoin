@@ -29,13 +29,16 @@ public class CryptoManager {
     private PrivateKey privKey;
 
     private KeystoreManager keyPairManager;
+    private boolean testMode;
+    private int testAttack;
     
-    
-    public CryptoManager(PublicKey publicKey, PrivateKey privateKey, KeystoreManager keyPairManager){
+    public CryptoManager(PublicKey publicKey, PrivateKey privateKey, KeystoreManager keyPairManager, boolean testMode, int testAttack){
         
     	this.pubKey=publicKey;
     	this.privKey=privateKey;
     	this.keyPairManager = keyPairManager;
+    	this.testMode=testMode;
+    	this.testAttack=testAttack;
         System.out.println("CRYPTO MANAGER STARTED");
     }
     
@@ -98,6 +101,11 @@ public class CryptoManager {
     public CipheredMessage makeCipheredMessage(Message message, PublicKey receiverPubKey){
         CipheredMessage cipheredMessage = null;
         try {
+        	
+        	KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        	kpg.initialize(1024);
+        	KeyPair keys = kpg.generateKeyPair();
+        	
             //Required params
             byte[] IV = generateIV();
 
@@ -107,7 +115,11 @@ public class CryptoManager {
 
             //Signature generation
             byte[] concatParams = concatHashParams(message, message.getTimestamp(), IV);
-            byte[] digitalSig = CryptoUtil.makeDigitalSignature(concatParams, privKey);
+            byte[] digitalSig;
+            if(testMode && testAttack==1) 
+            	digitalSig = CryptoUtil.makeDigitalSignature(concatParams, keys.getPrivate());
+            else
+            	digitalSig = CryptoUtil.makeDigitalSignature(concatParams, privKey);
             IntegrityCheck integrityCheck = new IntegrityCheck(digitalSig, message.getTimestamp(), message.getTimestamp());
             byte[] integrityCheckBytes = toBytes(integrityCheck);
 
@@ -119,7 +131,10 @@ public class CryptoManager {
             if(receiverPubKey==null)
             	System.out.println("Receiver key is null");
             byte[] cipheredKey = CryptoUtil.asymCipher(keyBytes, receiverPubKey);
-
+            if(testMode && testAttack==2) { 
+            	Message test = new Message(message.getSender(), message.getDestination(), message.getTimestamp()+100);
+            	cipheredContent = cipherContent(test, IV, aesKey);
+            }
             cipheredMessage = new CipheredMessage(cipheredContent, IV, cipheredIntegrityCheck, cipheredKey);
         } catch (NoSuchAlgorithmException | IOException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
             e.printStackTrace();

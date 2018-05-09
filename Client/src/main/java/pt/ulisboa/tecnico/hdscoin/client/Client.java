@@ -40,6 +40,8 @@ public class Client {
     //private PublicKey serverPublicKey;
     private boolean isReading = false;
     private long readID = 0;
+    private boolean test;
+    private int testAttack;
     private CountDownLatch readyThreadCounter = new CountDownLatch(3);
 
     private long writeTimestamp = -1;
@@ -51,16 +53,18 @@ public class Client {
 
     private String host;
 
-    public Client(String host, String clientName, String password) throws RemoteException, NotBoundException, MalformedURLException {
+    public Client(String host, String clientName, String password, boolean testMode, int testAttack) throws RemoteException, NotBoundException, MalformedURLException {
         this.host = host;
         this.clientName = clientName.toLowerCase().trim();
+        this.test=testMode;
+        this.testAttack=testAttack;
         servers = new ArrayList<RemoteServerInterface>();
         //servers = new HashMap<RemoteServerInterface, PublicKey>();
         connect();
         try {
             keyPairManager = new KeystoreManager("/" + clientName.trim().toLowerCase() + ".jks", password);
             clientKeyPair = keyPairManager.getKeyPair(clientName.trim().toLowerCase(), password);
-            manager = new CryptoManager(clientKeyPair.getPublic(), clientKeyPair.getPrivate(), keyPairManager);
+            manager = new CryptoManager(clientKeyPair.getPublic(), clientKeyPair.getPrivate(), keyPairManager, testMode,testAttack);
         } catch (Exception e) {
             System.out.println("KeyPair Error");
             e.printStackTrace();
@@ -183,10 +187,20 @@ public class Client {
         final ConcurrentHashMap<String, Message> readList = new ConcurrentHashMap<>();
         final ConcurrentHashMap<String, CipheredMessage> readListCiphers = new ConcurrentHashMap<>();
         readID++;
+        
+        if(test && testAttack==4) {
+        	readID=0;
+        }
+        
         try {
             Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), readID);
             for (int i = 0; i < numServers(); i++) {
-            	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
+            	final CipheredMessage cipheredMessage;
+            	if(test && testAttack==3) {
+            		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+1));
+            	}
+            	else
+            		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
                 final int index = i;
                 service.execute(() -> {
                     try {
@@ -389,5 +403,9 @@ public class Client {
     public void removePendingTransaction() {
         pendingTransaction = new ArrayList<Transaction>();
     }
+    
+    /*public void setServerByzantine(boolean mode) {
+    	servers.get(0).setByzantine(mode);
+    }*/
 
 }

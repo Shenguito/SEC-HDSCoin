@@ -28,11 +28,11 @@ public class ClientApplication {
     		String userNumer = reader.nextLine();
     		try {
 	            switch (userNumer.trim()) {
-	                case "1":  client=new Client(host, "alice", "alice123");
+	                case "1":  client=new Client(host, "alice", "alice123", false, 0);
 	                         break;
-	                case "2":  client=new Client(host, "bob", "bob123");
+	                case "2":  client=new Client(host, "bob", "bob123",false,0);
 	                         break;
-	                case "3":  client=new Client(host, "charlie", "charlie123");
+	                case "3":  client=new Client(host, "charlie", "charlie123",false,0);
 	                		break;
 	                default: System.out.println("\nThe '"+userNumer+ "' is not a valid number!");
 	                		continue;
