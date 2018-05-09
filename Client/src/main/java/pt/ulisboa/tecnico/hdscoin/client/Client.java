@@ -130,7 +130,6 @@ public class Client {
     }
 
     public synchronized boolean send(String sendDestination, String sendAmount) {
-        System.out.println("BLA");
         if (getClientName().toUpperCase().equals(sendDestination.toUpperCase())) {
             System.out.println("'" + sendDestination + "'? There is a bit probability being you, don't try to send money to yourself ;)");
             return true;
