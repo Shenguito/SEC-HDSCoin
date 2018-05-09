@@ -88,7 +88,7 @@ public class Server implements RemoteServerInterface {
     private KeystoreManager keyPairManager;
     private KeyPair serverKeyPair;
     private CryptoManager manager;
-    private String nameServer;
+    private String myServerName;
     private int serverNumber;
     private int totalServerNumber;
     private int taskCounter;
@@ -106,12 +106,12 @@ public class Server implements RemoteServerInterface {
     private ConcurrentHashMap<PublicKey, String> clients;
 
     public Server(int number, int totalServer) throws RemoteException, AlreadyBoundException, MalformedURLException, NotBoundException {
-    	nameServer = "server" + number;
+    	myServerName = "server" + number;
     	serverNumber=number;
     	totalServerNumber=totalServer;
     	servers = new ArrayList<RemoteServerInterface>();
     	serversPublicKey = new HashMap<String, PublicKey>();
-        storage = new Storage(nameServer);
+        storage = new Storage(myServerName);
         taskCounter = 0;
         backupFileCheck();
         connect(number);
@@ -243,7 +243,7 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
-        broadcastEcho(manager.getDigitalSign(msg));
+        broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
         try {
         	//System.out.println("Waiting for echo...");
         	deliveryCountDown.await();
@@ -301,7 +301,7 @@ public class Server implements RemoteServerInterface {
 
 
         //Broadcast
-        broadcastEcho(manager.getDigitalSign(msg));
+        broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
         try {
         	//System.out.println("Waiting for echo...");
         	deliveryCountDown.await();
@@ -336,7 +336,7 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
-        broadcastEcho(manager.getDigitalSign(msg));
+        broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
         try {
         	//System.out.println("Waiting for echo...");
         	deliveryCountDown.await();
@@ -402,8 +402,7 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
-        broadcastEcho(manager.getDigitalSign(msg));
-        
+        broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
         
         try {
         	//System.out.println("Waiting for echo...");
@@ -483,11 +482,11 @@ public class Server implements RemoteServerInterface {
     
     //Broadcast echo and ready
     
-    private void broadcastEcho(IntegrityCheck integrityCheck) {
+    private void broadcastEcho(IntegrityCheck integrityCheck, Message msg) {
         final BroadcastMessage checkBroadcast=new BroadcastMessage(integrityCheck, totalServerNumber);
         //System.out.println("Digital signature stored: "+integrityCheck.getStringDigitalSignature());
         
-        echoSelf(checkBroadcast);
+        echoSelf(checkBroadcast, msg);
         try {
         	//System.out.println("Waiting for echo...");
         	echoCountDown.await();
@@ -495,10 +494,10 @@ public class Server implements RemoteServerInterface {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-        readySelf(checkBroadcast);
+        readySelf(checkBroadcast, msg);
         try {
         	//System.out.println("Waiting for ready...");
-        	readyCountDown.await();
+        	deliveryCountDown.await();
         	//System.out.println("Ready worked...");
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -509,20 +508,20 @@ public class Server implements RemoteServerInterface {
 
     
 
-    private void echoSelf(BroadcastMessage checkEchoBroadcast){
+    private void echoSelf(BroadcastMessage checkEchoBroadcast, Message message){
     	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getDigitalsign).filter(checkEchoBroadcast.getDigitalsign()::equals).findFirst().isPresent()) {
-			checkEchoBroadcast.echoServer(nameServer);
+			checkEchoBroadcast.echoServer(myServerName);
 			broadcastMessageEcho.add(checkEchoBroadcast);
 			echoCountDown.countDown();
 			for (int i = 0; i < servers.size(); i++) {
-	    		if((i+1)==serverNumber) {
+	    		if((i+1)==serverNumber) { // it does not self send, above 4 lines already did it
 	    			continue;
 	    		}
 	    		final int index=i;
 	    		service.execute(() -> {
 		    		try {
 		    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
-		    			Message msg=new Message(manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkEchoBroadcast);
+		    			Message msg=new Message(message, manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkEchoBroadcast);
 	        			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
 	
 	    				servers.get(index).echoBroadcast(cipheredMessage);
@@ -539,7 +538,7 @@ public class Server implements RemoteServerInterface {
     	}
     	
     }
-    private void readySelf(BroadcastMessage checkReadyBroadcast){
+    private void readySelf(BroadcastMessage checkReadyBroadcast, Message message){
     	
     	/* 
     	 * in case broadcastMessageReady has not this BroadcastMessage yet
@@ -548,21 +547,21 @@ public class Server implements RemoteServerInterface {
     	 * then it means that it can do ready
     	 */
     	if(!broadcastMessageReady.stream().map(BroadcastMessage::getDigitalsign).filter(checkReadyBroadcast.getDigitalsign()::equals).findFirst().isPresent()) {
-			checkReadyBroadcast.readyServer(nameServer);
+			checkReadyBroadcast.readyServer(myServerName);
 			broadcastMessageReady.add(checkReadyBroadcast);
-			readyCountDown.countDown();
+			//readyCountDown.countDown();
 			deliveryCountDown.countDown();
 			for (int i = 0; i < servers.size(); i++) {
-	    		if((i+1)==serverNumber) {
+	    		if((i+1)==serverNumber) { // it does not self send, above 4 lines already did it
 	    			continue;
 	    		}
 	    		final int index=i;
 	    		service.execute(() -> {
 		    		try {
 		    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
-		    			Message msg=new Message(manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkReadyBroadcast);
-	        			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
-	
+		    			Message msg=new Message(message, manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkReadyBroadcast);
+	        			CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
+	        			//System.out.println("server"+(index+1)+"\n"+serversPublicKey.get("server"+(index+1)));
 	    				servers.get(index).readyBroadcast(cipheredMessage);
 	
 		            } catch (RemoteException e) {
@@ -618,6 +617,8 @@ public class Server implements RemoteServerInterface {
     	}
     }
     public void readyBroadcast(CipheredMessage msg) throws RemoteException {
+    	//System.out.println("Readying");
+    	//System.out.println("receiving"+myServerName+"\n"+manager.getPublicKey());
     	Message decipheredMessage = manager.decipherCipheredMessage(msg);
     	BroadcastMessage bcm=decipheredMessage.getBcm();
 
@@ -628,9 +629,9 @@ public class Server implements RemoteServerInterface {
 				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
 				for(String s:serversPublicKey.keySet())
 					if(serversPublicKey.get(s).equals(decipheredMessage.getSender())){
-						tmp.echoServer(s);
+						tmp.readyServer(s);
 						broadcastMessageReady.add(tmp);
-						readyCountDown.countDown();
+						//readyCountDown.countDown();
 						deliveryCountDown.countDown();
 					}
 
@@ -645,13 +646,42 @@ public class Server implements RemoteServerInterface {
 	    				if(serversPublicKey.get(s).equals(decipheredMessage.getSender())&&
 	    						!broadcastMessageReady.get(i).serverReadied(s)){
 	    					broadcastMessageReady.get(i).readyServer(s);
-				    		readyCountDown.countDown();
+				    		//readyCountDown.countDown();
 				    		deliveryCountDown.countDown();
 						}
+	    			
+	    			if(broadcastMessageReady.get(i).readyServerReceived()>1&&
+	    					!broadcastMessageReady.get(i).serverReadied(myServerName)) { // broadcast ready in case >f 
+	    				broadcastMessageReady.get(i).readyServer(myServerName);
+	    				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
+	    				tmp.readyServer(myServerName);
+	    				for (int j = 0; j < servers.size(); j++) {
+	    		    		if((j+1)==serverNumber) {
+	    		    			continue;
+	    		    		}
+	    		    		final int index=j;
+	    					service.execute(() -> {
+	    						try {
+	    			    			Message msg2=new Message(decipheredMessage.getMessage(), manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), tmp);
+	    		        			CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg2, serversPublicKey.get("server"+(index+1)));
+	    		
+	    		    				servers.get(index).readyBroadcast(cipheredMessage);
+	    		
+	    			            } catch (RemoteException e) {
+	    			                System.out.println("Connection fail...");
+	    			                System.out.println("Server[" + (index+1) + "] connection failed");
+	    			            } catch (Exception e) {
+	    							// TODO Auto-generated catch block
+	    							e.printStackTrace();
+	    						}
+	    					});
+	    				}
+    					continue;
+	    			}
+	    			
 	    		}
-    		//else nothing
+    		
     	}
-    	
     }
 
 

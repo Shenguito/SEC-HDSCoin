@@ -10,7 +10,11 @@ import java.util.List;
 
 public class Message implements Serializable{
 
-    private byte[] IV;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1252380591417580088L;
+	private byte[] IV;
     private IntegrityCheck originalSig;
     private PublicKey serverSender;
 
@@ -30,8 +34,10 @@ public class Message implements Serializable{
     private boolean isAudit;
     private BroadcastMessage bcm;
     private Message original;
+    private Message message; //for broadcast
 
-    //Client
+    
+	//Client
     //receive
     public Message(PublicKey sender, Transaction transaction, long timestamp) {
         this.sender = sender;
@@ -99,11 +105,16 @@ public class Message implements Serializable{
         return original;
     }
 
-    public Message(PublicKey sender, PublicKey destination, BroadcastMessage bcm) {
+    public Message(Message message, PublicKey sender, PublicKey destination, BroadcastMessage bcm) {
+    	this.message=message;
     	this.sender=sender;
     	this.destination=destination;
     	this.bcm=bcm;
     }
+    
+    public Message getMessage() {
+		return message;
+	}
 
     public boolean isAudit() {
         return isAudit;
