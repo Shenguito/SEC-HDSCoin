@@ -16,18 +16,10 @@ import pt.ulisboa.tecnico.hdscoin.server.storage.Tasks;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,6 +27,9 @@ import java.util.concurrent.Executors;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -213,6 +208,8 @@ public class Server implements RemoteServerInterface {
 	                System.out.println("Server[" + (index+1) + "] connection failed");
 	            }
     		});
+
+
     	}
     	//Wait for values;
     	//TODO CountDownLatch???
@@ -397,7 +394,7 @@ public class Server implements RemoteServerInterface {
     	
     	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, nameServer);
     	
-    	//ECHO
+    	/*//ECHO
     	try{
 	    	if(!(registerEcho(register))){
 	    		System.out.println("Error with message and echo message!");
@@ -417,7 +414,7 @@ public class Server implements RemoteServerInterface {
     	}catch(RemoteException e){
     		System.out.println("RemoteException error... Error with ready and delivery message!");
     		return false;
-    	}
+    	}*/
 
         if (!storage.checkFileExists(clientName)) {
             try {
@@ -491,7 +488,7 @@ public class Server implements RemoteServerInterface {
                 if (sender.sendBalance(decipheredMessage.getAmount())) {
                     Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination())); //destiny public key, not name
                     destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),
-                            clients.get(decipheredMessage.getDestination()), decipheredMessage.getAmount(), manager.getDigitalSign(msg)));
+                            clients.get(decipheredMessage.getDestination()), decipheredMessage.getAmount(), manager.getDigitalSign(msg), decipheredMessage, msg.getIV()));
 
                     try {
                         storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
@@ -531,14 +528,14 @@ public class Server implements RemoteServerInterface {
 
         messageManager.addTask(taskCounter, receivedTask);
 
-        Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>(), clients.get(decipheredMessage.getDestination()), 0); //case the client does not exist
+        Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>(), decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), 0); //case the client does not exist
         if (storage.checkFileExists(clients.get(decipheredMessage.getDestination()))) {
             Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
 
             if (decipheredMessage.getDestination().equals(decipheredMessage.getSender()))
-                message = new Message(manager.getPublicKey(), value.getBalance(), value.getPendingTransfers(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
+                message = new Message(manager.getPublicKey(), value.getBalance(), value.getPendingTransfers(), decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
             else
-                message = new Message(manager.getPublicKey(), value.getBalance(), null, clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
+                message = new Message(manager.getPublicKey(), value.getBalance(), null,  decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
         }
         CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
 
@@ -608,7 +605,7 @@ public class Server implements RemoteServerInterface {
         return cipheredMessage;
     }
 
-    public CipheredMessage audit(CipheredMessage msg) throws RemoteException {
+    public CipheredMessage audit(CipheredMessage msg) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
 
         if (isServerCrashed())
             throw new RemoteException();
@@ -630,40 +627,47 @@ public class Server implements RemoteServerInterface {
         messageManager.addTask(taskCounter, receivedTask);
 
         Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
+        String name = storage.getClients().get(decipheredMessage.getDestination());
 
-        Message message = new Message(manager.getPublicKey(), value.getBalance(), value.getTransfers(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
+        Message message = new Message(manager.getPublicKey(), value.getBalance(), value.getTransfers(), decipheredMessage.getDestination() ,name, value.getLastWriteTimestamp());
 
         CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
         return cipheredMessage;
     }
 
     @Override
-    public CipheredMessage clientHasRead(CipheredMessage msg) throws RemoteException {
+    public CipheredMessage clientHasRead(CipheredMessage msg) throws IOException, NoSuchPaddingException, ClassNotFoundException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
-
-        Ledger toBeUpdated = storage.readClient(clients.get(decipheredMessage.getCheckedKey()));
+        Message innerMessage = decipheredMessage.getOriginal();
+        boolean verified = manager.verifyIntegrity(innerMessage, decipheredMessage.getIV(), decipheredMessage.getOriginalSig(), innerMessage.getSender());
+        System.out.println("VERiFiED? " + verified);
+        Ledger toBeUpdated = storage.readClient(clients.get(innerMessage.getCheckedKey()));
         Message message = new Message(serverKeyPair.getPublic(), false, toBeUpdated.getLastWriteTimestamp());
-        if(toBeUpdated.getLastWriteTimestamp() < decipheredMessage.getTimestamp()) {
-            if (decipheredMessage.getTransactions() != null) {
-                if (decipheredMessage.isAudit())
-                    toBeUpdated.setPendingTransfers(decipheredMessage.getTransactions());
-                else
-                    toBeUpdated.setTransfers(decipheredMessage.getTransactions());
-            }
-            toBeUpdated.setBalance(decipheredMessage.getAmount());
-            toBeUpdated.setLastWriteTimestamp(decipheredMessage.getTimestamp());
-            try {
-                storage.writeClient(clients.get(decipheredMessage.getCheckedKey()), toBeUpdated);
-                storage.writeClientBackup(clients.get(decipheredMessage.getCheckedKey()), toBeUpdated);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if(verified) {
+            if (toBeUpdated.getLastWriteTimestamp() < innerMessage.getTimestamp()) {
+                if (innerMessage.getTransactions() != null) {
+                    if (decipheredMessage.isAudit())
+                        toBeUpdated.setPendingTransfers(innerMessage.getTransactions());
+                    else
+                        toBeUpdated.setTransfers(innerMessage.getTransactions());
+                }
+                toBeUpdated.setBalance(innerMessage.getAmount());
+                toBeUpdated.setLastWriteTimestamp(innerMessage.getTimestamp());
+                try {
+                    storage.writeClient(clients.get(innerMessage.getCheckedKey()), toBeUpdated);
+                    storage.writeClientBackup(clients.get(innerMessage.getCheckedKey()), toBeUpdated);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
-            message = new Message(serverKeyPair.getPublic(), true, toBeUpdated.getLastWriteTimestamp());
+                message = new Message(serverKeyPair.getPublic(), true, toBeUpdated.getLastWriteTimestamp());
+            }
         }
         CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
         return cipheredMessage;
     }
+
+
 
     public void setServerFault(boolean crash) {
         crashFailure = crash;

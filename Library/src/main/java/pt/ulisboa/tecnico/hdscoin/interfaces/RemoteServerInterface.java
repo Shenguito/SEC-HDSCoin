@@ -3,9 +3,17 @@ package pt.ulisboa.tecnico.hdscoin.interfaces;
 
 import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 
 
@@ -14,8 +22,8 @@ public interface RemoteServerInterface extends Remote{
 	CipheredMessage send(CipheredMessage msg) throws RemoteException;
     CipheredMessage check(CipheredMessage msg) throws RemoteException;
     CipheredMessage receive(CipheredMessage msg) throws RemoteException;
-    CipheredMessage audit(CipheredMessage msg) throws RemoteException;
-    CipheredMessage clientHasRead(CipheredMessage msg) throws RemoteException;
+    CipheredMessage audit(CipheredMessage msg) throws RemoteException, IOException, NoSuchAlgorithmException, InvalidKeySpecException;
+    CipheredMessage clientHasRead(CipheredMessage msg) throws IOException, NoSuchPaddingException, ClassNotFoundException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException;
     
     
     

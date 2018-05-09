@@ -155,6 +155,23 @@ public class CryptoManager {
         }
         return deciphMsg;
     }
+
+    public IntegrityCheck decipherIntegrityCheck(CipheredMessage cipheredMessage){
+        IntegrityCheck deciphCheck = null;
+        try {
+            SecretKey key = (SecretKey) fromBytes(CryptoUtil.asymDecipher(cipheredMessage.getKey(), privKey));
+            byte[] decipheredContent = CryptoUtil.symDecipher(cipheredMessage.getContent(), cipheredMessage.getIV(), key);
+            Message deciphMsg = (Message) fromBytes(decipheredContent);
+            byte[] decipheredIntegrityBytes = CryptoUtil.symDecipher(cipheredMessage.getIntegrityCheck(), cipheredMessage.getIV(), key);
+            deciphCheck = (IntegrityCheck) fromBytes(decipheredIntegrityBytes);
+            if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), deciphCheck, deciphMsg.getSender())) return deciphCheck;
+            else throw new IllegalStateException("Invalid Signature");
+        } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+            e.printStackTrace();
+            System.out.println("Decipher error...");
+        }
+        return deciphCheck;
+    }
     
     public IntegrityCheck getDigitalSign(CipheredMessage message){
     	
@@ -189,10 +206,12 @@ public class CryptoManager {
      * @throws ClassNotFoundException
      * @throws InvalidAlgorithmParameterException
      */
-    private boolean verifyIntegrity(Message msg, byte[] IV, IntegrityCheck check, PublicKey key) throws IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException, InvalidAlgorithmParameterException {
+    public boolean verifyIntegrity(Message msg, byte[] IV, IntegrityCheck check, PublicKey key) throws IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException, InvalidAlgorithmParameterException {
         byte[] concatParams = concatHashParams(msg, check.getNonce(), IV);
        return CryptoUtil.verifyDigitalSignature(check.getDigitalSignature(), concatParams, key);
     }
+
+
 
     /**
      * Ciphers a {@link Message} object with AES
@@ -225,6 +244,8 @@ public class CryptoManager {
         os.flush();
         return byteStream.toByteArray();
     }
+
+
 
     /**
      * Converts a byte array to a Java object.

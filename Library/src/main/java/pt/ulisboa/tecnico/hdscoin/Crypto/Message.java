@@ -4,12 +4,14 @@ import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 
 import java.io.Serializable;
 import java.security.PublicKey;
-import java.util.ArrayList;
 import java.util.List;
 
 
 public class Message implements Serializable{
 
+    private byte[] IV;
+    private IntegrityCheck originalSig;
+    private PublicKey serverSender;
     private double amount;
     private PublicKey sender;
     private PublicKey destination;
@@ -20,6 +22,7 @@ public class Message implements Serializable{
     private String checkedName;
     private long timestamp;
     private boolean isAudit;
+    private Message original;
 
     //Client
     //receive
@@ -52,27 +55,49 @@ public class Message implements Serializable{
 
    
 	//check && audit
-    public Message(PublicKey sender, double amount, List<Transaction> transactions, String checkedName, long timestamp){
+    public Message(PublicKey sender, double amount, List<Transaction> transactions, PublicKey checkedKey, String checkedName, long timestamp){
         this.sender = sender;
         this.timestamp = timestamp;
         this.amount=amount;
         this.transactions=transactions;
         this.checkedName=checkedName;
+        this.checkedKey = checkedKey;
     }
 
 
-    public Message(PublicKey sender, double amount, List<Transaction> transactions, PublicKey checkedKey, String checkedName, long timestamp, boolean isAudit){
-        this.isAudit = isAudit;
+    public Message(PublicKey sender, Message original, PublicKey checkedKey, String checkedName, boolean isAudit, IntegrityCheck check, byte[] IV){
         this.sender = sender;
         this.timestamp = timestamp;
         this.amount=amount;
         this.transactions=transactions;
         this.checkedKey = checkedKey;
         this.checkedName=checkedName;
+        this.original = original;
+        this.isAudit = isAudit;
+        this.originalSig = check;
+        this.IV = IV;
+    }
+
+    public byte[] getIV() {
+        return IV;
+    }
+
+    public IntegrityCheck getOriginalSig() {
+        return originalSig;
+    }
+
+
+
+    public Message getOriginal() {
+        return original;
     }
 
     public boolean isAudit() {
         return isAudit;
+    }
+
+    public PublicKey getServerSender() {
+        return serverSender;
     }
 
     public PublicKey getCheckedKey() {

@@ -6,9 +6,12 @@ import java.io.Serializable;
 import java.security.PublicKey;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
 
 
 public class Transaction implements Serializable{
+	private  byte[] IV;
+	private  Message message;
 	private String sender;
 	private String receiver;
 	private double amount;
@@ -21,11 +24,13 @@ public class Transaction implements Serializable{
 	}
 
 	//TODO HASH (sender || receiver || amount) encrypted with client private key.
-	public Transaction(String sender, String receiver, double amount, IntegrityCheck digitalSign) {
+	public Transaction(String sender, String receiver, double amount, IntegrityCheck digitalSign, Message message, byte[] IV) {
 		this.sender = sender;
 		this.receiver = receiver;
 		this.amount = amount;
 		this.digitalSign=digitalSign;
+		this.message = message;
+		this.IV = IV;
 	}
 
 	public String getSender() {
@@ -40,6 +45,12 @@ public class Transaction implements Serializable{
 	public IntegrityCheck getIntegrityCheck() {
 		return digitalSign;
 	}
+
+	public byte[] getIV() {
+		return IV;
+	}
+
+
 	@Override
 	public String toString() {
 		

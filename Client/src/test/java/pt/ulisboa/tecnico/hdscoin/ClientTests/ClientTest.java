@@ -37,10 +37,8 @@ public class ClientTest {
 			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
-			bob.check("bob");
-			alice.check("bob");
-			bob.check("alice");
 			alice.check("alice");
+			bob.check("bob");
 			assertTrue(alice.send("bob", "5.0"));
 		} catch (RemoteException e) {
 			fail("Not yet implemented");
@@ -60,10 +58,8 @@ public class ClientTest {
 			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
-			alice.check("bob");
-			bob.check("alice");
-			bob.check("bob");
 			alice.check("alice");
+			bob.check("bob");
 			assertTrue(alice.send("bob", "1"));
 			assertTrue(bob.send("alice", "1"));
 			assertTrue(alice.check("bob"));
@@ -87,15 +83,13 @@ public class ClientTest {
 			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
-			alice.check("bob");
-			bob.check("alice");
 			alice.check("alice");
+			bob.check("bob");
 			assertTrue(alice.send("bob", "1.0"));
 			assertTrue(alice.send("bob", "0.5"));
 			assertTrue(alice.send("bob", "1.5"));
 			assertTrue(alice.send("bob", "2.5"));
 			assertTrue(alice.send("bob", "2.0"));
-			bob.check("bob");
 			assertTrue(bob.send("alice", "1.0"));
 			assertTrue(alice.check("alice"));
 			assertTrue(bob.check("bob"));
@@ -121,15 +115,13 @@ public class ClientTest {
 			bob=new Client("localhost", "bob", "bob123");
 			assertTrue(alice.register());
 			assertTrue(bob.register());
-			alice.check("bob");
-			bob.check("alice");
 			alice.check("alice");
+			bob.check("bob");
 			assertTrue(alice.send("bob", "1"));
 			assertTrue(alice.send("bob", "0.5"));
 			assertTrue(alice.send("bob", "1.5"));
 			assertTrue(alice.send("bob", "2.5"));
 			assertTrue(alice.send("bob", "2.0"));
-			bob.check("bob");
 			assertTrue(bob.send("alice", "1.0"));
 			assertTrue(alice.check("alice"));
 			assertTrue(bob.check("bob"));
