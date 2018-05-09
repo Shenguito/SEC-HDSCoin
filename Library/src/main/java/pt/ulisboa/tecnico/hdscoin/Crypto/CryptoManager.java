@@ -106,7 +106,7 @@ public class CryptoManager {
             byte[] cipheredContent = cipherContent(message, IV, aesKey);
 
             //Signature generation
-            byte[] concatParams = concatHashParams(message, message.getTimestamp(), IV);
+            byte[] concatParams = concatHashParams(message, message.getTimestamp());
             byte[] digitalSig = CryptoUtil.makeDigitalSignature(concatParams, privKey);
             IntegrityCheck integrityCheck = new IntegrityCheck(digitalSig, message.getTimestamp(), message.getTimestamp());
             byte[] integrityCheckBytes = toBytes(integrityCheck);
@@ -147,7 +147,7 @@ public class CryptoManager {
             deciphMsg = (Message) fromBytes(decipheredContent);
             byte[] decipheredIntegrityBytes = CryptoUtil.symDecipher(cipheredMessage.getIntegrityCheck(), cipheredMessage.getIV(), key);
             IntegrityCheck check = (IntegrityCheck) fromBytes(decipheredIntegrityBytes);
-            if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), check, deciphMsg.getSender())) return deciphMsg;
+            if(verifyIntegrity(deciphMsg, check, deciphMsg.getSender())) return deciphMsg;
             else throw new IllegalStateException("Invalid Signature");
         } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
@@ -164,7 +164,7 @@ public class CryptoManager {
             Message deciphMsg = (Message) fromBytes(decipheredContent);
             byte[] decipheredIntegrityBytes = CryptoUtil.symDecipher(cipheredMessage.getIntegrityCheck(), cipheredMessage.getIV(), key);
             deciphCheck = (IntegrityCheck) fromBytes(decipheredIntegrityBytes);
-            if(verifyIntegrity(deciphMsg, cipheredMessage.getIV(), deciphCheck, deciphMsg.getSender())) return deciphCheck;
+            if(verifyIntegrity(deciphMsg, deciphCheck, deciphMsg.getSender())) return deciphCheck;
             else throw new IllegalStateException("Invalid Signature");
         } catch (ClassNotFoundException | IOException | NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
@@ -193,7 +193,6 @@ public class CryptoManager {
     /**
      * Calculates digital sign on the receiver end and compares with the one received
      * @param msg The decrypted {@link Message}
-     * @param IV Initialization Vector contained in the received message
      * @param check Contains the rest of the parameters used in the signature
      * @param key The public Key of the origin
      * @return true if signature matches, false otherwise
@@ -206,8 +205,8 @@ public class CryptoManager {
      * @throws ClassNotFoundException
      * @throws InvalidAlgorithmParameterException
      */
-    public boolean verifyIntegrity(Message msg, byte[] IV, IntegrityCheck check, PublicKey key) throws IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException, InvalidAlgorithmParameterException {
-        byte[] concatParams = concatHashParams(msg, check.getNonce(), IV);
+    public boolean verifyIntegrity(Message msg, IntegrityCheck check, PublicKey key) throws IllegalBlockSizeException, NoSuchPaddingException, BadPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException, InvalidAlgorithmParameterException {
+        byte[] concatParams = concatHashParams(msg, check.getNonce());
        return CryptoUtil.verifyDigitalSignature(check.getDigitalSignature(), concatParams, key);
     }
 
@@ -266,19 +265,17 @@ public class CryptoManager {
      * Concatenates parameters that go into the hash and turns it into a byte array
      * @param message Message that should be sent
      * @param timestamp timestamp of the message
-     * @param IV Init Vector
      * @return byte array of msg||IV||t
      * @throws IOException
      */
-    private byte[] concatHashParams(Message message, long timestamp, byte[] IV) throws IOException {
+    private byte[] concatHashParams(Message message, long timestamp) throws IOException {
         byte[] msgBytes = toBytes(message);
         ByteBuffer byteBuffer = ByteBuffer.allocate(Long.BYTES);
         byteBuffer.putLong(timestamp);
         byte[] timestampBytes = byteBuffer.array();
-        byte[] concatedParams = new byte[msgBytes.length + timestampBytes.length + IV.length];
+        byte[] concatedParams = new byte[msgBytes.length + timestampBytes.length];
         System.arraycopy(msgBytes, 0, concatedParams, 0, msgBytes.length);
         System.arraycopy(timestampBytes, 0, concatedParams, msgBytes.length, timestampBytes.length);
-        System.arraycopy(IV, 0, concatedParams, msgBytes.length + timestampBytes.length, IV.length);
         return concatedParams;
     }
 

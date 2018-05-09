@@ -353,7 +353,7 @@ public class Server implements RemoteServerInterface {
 
             if (decipheredMessage.getDestination().equals(decipheredMessage.getSender()))
                 message = new Message(manager.getPublicKey(), value.getBalance(), value.getPendingTransfers(), decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
-            else
+            else //NOT GOOD
                 message = new Message(manager.getPublicKey(), value.getBalance(), null,  decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
         }
         CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
@@ -427,12 +427,6 @@ public class Server implements RemoteServerInterface {
 
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
-
-
-
-
-
-
         Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
         String name = storage.getClients().get(decipheredMessage.getDestination());
 
@@ -446,7 +440,7 @@ public class Server implements RemoteServerInterface {
     public CipheredMessage clientHasRead(CipheredMessage msg) throws IOException, NoSuchPaddingException, ClassNotFoundException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
         Message innerMessage = decipheredMessage.getOriginal();
-        boolean verified = manager.verifyIntegrity(innerMessage, decipheredMessage.getIV(), decipheredMessage.getOriginalSig(), innerMessage.getSender());
+        boolean verified = manager.verifyIntegrity(innerMessage, decipheredMessage.getOriginalSig(), innerMessage.getSender());
         System.out.println("VERiFiED? " + verified);
         Ledger toBeUpdated = storage.readClient(clients.get(innerMessage.getCheckedKey()));
         Message message = new Message(serverKeyPair.getPublic(), false, toBeUpdated.getLastWriteTimestamp());
