@@ -29,10 +29,8 @@ public interface RemoteServerInterface extends Remote{
     
     
     
-    CipheredMessage readOperation(CipheredMessage msg) throws RemoteException;
-    CipheredMessage readOperationConclusion(CipheredMessage msg) throws RemoteException;
+    void echoBroadcast(CipheredMessage msg) throws RemoteException;
+    void readyBroadcast(CipheredMessage msg) throws RemoteException;
+    void deliveryBroadcast(CipheredMessage msg) throws RemoteException;
     
-    CipheredMessage writeOperation(CipheredMessage msg) throws RemoteException;
-    
-    void test(String text)throws RemoteException;
 }

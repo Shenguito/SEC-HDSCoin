@@ -6,13 +6,13 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
 import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
+import pt.ulisboa.tecnico.hdscoin.interfaces.BroadcastMessage;
 import pt.ulisboa.tecnico.hdscoin.interfaces.FunctionRegister;
 import pt.ulisboa.tecnico.hdscoin.interfaces.KeystoreManager;
 import pt.ulisboa.tecnico.hdscoin.interfaces.RemoteServerInterface;
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
 import pt.ulisboa.tecnico.hdscoin.server.storage.Ledger;
 import pt.ulisboa.tecnico.hdscoin.server.storage.Storage;
-import pt.ulisboa.tecnico.hdscoin.server.storage.Tasks;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -22,6 +22,7 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -52,13 +54,7 @@ public class Server implements RemoteServerInterface {
 
 	
 	//Authenticated Double-Echo Broadcast page 118
-	//CHANGED
-	private boolean sentEchoRegister=false;
-	private boolean sentReadyRegister=false;
-	private boolean deliveredRegister=false;
-	private FunctionRegister registerEcho=null;
-	private FunctionRegister registerReady=null;
-	private FunctionRegister registerDelivery=null;
+
 	private ConcurrentHashMap<String, ArrayList<FunctionRegister>> registerEchoMessage=new ConcurrentHashMap<String, ArrayList<FunctionRegister>>();
 	private ConcurrentHashMap<String, ArrayList<FunctionRegister>> registerReadyMessage=new ConcurrentHashMap<String, ArrayList<FunctionRegister>>();
 	private int rid=0;
@@ -67,12 +63,26 @@ public class Server implements RemoteServerInterface {
 	
 	
 	
+	//Authenticated Double-Echo Broadcast based for message exchange
+	private ArrayList<BroadcastMessage> broadcastMessageEcho=new ArrayList<BroadcastMessage>(); //receive
+	private CountDownLatch echoCountDown = new CountDownLatch(5);
+	private ArrayList<BroadcastMessage> broadcastMessageReady=new ArrayList<BroadcastMessage>(); //order
+	private CountDownLatch readyCountDown = new CountDownLatch(5);
+	private ArrayList<BroadcastMessage> broadcastMessageDelivery=new ArrayList<BroadcastMessage>(); //write
+	private CountDownLatch deliveryCountDown = new CountDownLatch(5);
+	
+	/*TODO case above does not work
+	List<BroadcastMessage> broadcastMessageEcho = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
+	List<BroadcastMessage> broadcastMessageReady = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
+	List<BroadcastMessage> broadcastMessageDelivery = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
+	*/
+	
+	
 
     private Storage storage;
     private KeystoreManager keyPairManager;
     private KeyPair serverKeyPair;
     private CryptoManager manager;
-    private Tasks messageManager;
     private String nameServer;
     private int serverNumber;
     private int totalServerNumber;
@@ -103,7 +113,6 @@ public class Server implements RemoteServerInterface {
             keyPairManager = new KeystoreManager("/server.jks", "server123");
             serverKeyPair = keyPairManager.getKeyPair("server"+number, "server"+number+"123");
             manager = new CryptoManager(serverKeyPair.getPublic(), serverKeyPair.getPrivate(), keyPairManager);
-            messageManager = new Tasks(nameServer);
 
         } catch (Exception e) {
             System.out.println("KeyPair Error");
@@ -173,6 +182,420 @@ public class Server implements RemoteServerInterface {
         System.out.println("ServerInterface" + (RealNumS + 1) + " ready"+"\t Server number: "+serverNumber);
     }
 
+    
+    
+    public boolean register(String clientName, PublicKey publickey) throws RemoteException {
+    	
+    	if (isServerCrashed())
+            throw new RemoteException();
+    	
+    	int readID=rid+1;
+    	
+    	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, totalServerNumber);
+    	/*
+    	//ECHO
+    	try{
+	    	if(!(registerEcho(register))){
+	    		System.out.println("Error with message and echo message!");
+	    		return false;
+	    	}
+    	}catch(RemoteException e){
+    		System.out.println("RemoteException error... Error with message and echo message!");
+    		return false;
+    	}
+    	
+    	//READY
+    	try{
+	    	if(!(registerReady(register))){
+	    		System.out.println("Error with ready and delivery message!");
+	    		return false;
+	    	}
+    	}catch(RemoteException e){
+    		System.out.println("RemoteException error... Error with ready and delivery message!");
+    		return false;
+    	}
+*/
+        if (!storage.checkFileExists(clientName)) {
+            try {
+                Ledger ledger = new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>());
+                storage.writeClient(clientName, ledger);
+                storage.writeClientBackup(clientName, ledger);
+                //Confirm write and read
+                rid=readID;
+            } catch (JsonGenerationException e) {
+                e.printStackTrace();
+                return false;
+            } catch (JsonMappingException e) {
+                e.printStackTrace();
+                return false;
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                return false;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        } else {
+            System.out.println("User already registered!");
+            
+        }
+        if (!clients.containsKey(clientName)) {
+            clients.put(publickey, clientName);
+            System.out.println("Test-> reading " + clientName + " file:\n" + storage.readClient(clientName).toString());
+        }
+    	
+    	
+    	/*TODO not necessary part2?
+        try{
+	    	if(!registerDelivery(register)){
+	    		System.out.println("Error with delivery message!");
+	    		return;
+	    	}
+    	}catch(RemoteException e){
+    		System.out.println("RemoteException error... Error with delivery message!");
+    		return;
+    	}
+    	*/
+    	return true;
+    }
+
+    //PublicKey source, PublicKey destination, int amount
+    public synchronized CipheredMessage send(CipheredMessage msg) throws RemoteException {
+
+        if (isServerCrashed())
+            throw new RemoteException();
+
+        System.out.println("Deciphering message");
+        Message decipheredMessage = manager.decipherCipheredMessage(msg);
+
+
+        
+        
+        //TODO
+        final BroadcastMessage checkBroadcast=new BroadcastMessage(manager.getDigitalSign(msg), totalServerNumber);
+        
+        
+        
+
+        Message message = new Message(serverKeyPair.getPublic(), false, -1); //case the client does not exist
+        if (storage.checkFileExists(clients.get(decipheredMessage.getSender()))) {
+
+
+            Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
+            if(sender.getLastWriteTimestamp() < decipheredMessage.getTimestamp()) {
+                sender.setLastWriteTimestamp(decipheredMessage.getTimestamp());
+                if (sender.sendBalance(decipheredMessage.getAmount())) {
+                    Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination())); //destiny public key, not name
+                    destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),
+                            clients.get(decipheredMessage.getDestination()), decipheredMessage.getAmount(), manager.getDigitalSign(msg)));
+
+                    try {
+                        storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
+                        storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
+                        //Write to backup file
+                        storage.writeClientBackup(clients.get(decipheredMessage.getDestination()), destiny);
+                        storage.writeClientBackup(clients.get(decipheredMessage.getSender()), sender);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    message = new Message(serverKeyPair.getPublic(), true, sender.getLastWriteTimestamp());
+                }
+            } else System.out.println("Message out of date - MSG: " + decipheredMessage.getTimestamp() + " TIME: " + sender.getLastWriteTimestamp());
+
+        }
+
+        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
+        return cipheredMessage;
+
+    }
+
+
+    public CipheredMessage check(CipheredMessage msg) throws RemoteException {
+
+        if (isServerCrashed())
+            throw new RemoteException();
+
+        Message decipheredMessage = manager.decipherCipheredMessage(msg);
+        System.out.println("Sender is "+clients.get(decipheredMessage.getSender()) + ":\n" + decipheredMessage.getSender());
+        System.out.println("Target is "+clients.get(decipheredMessage.getDestination()) + ":\n" + decipheredMessage.getDestination());
+
+
+
+
+
+        //TODO
+        final BroadcastMessage checkBroadcast=new BroadcastMessage(manager.getDigitalSign(msg), totalServerNumber);
+        //TODO Sheng
+        //echoSelf(checkBroadcast);
+        
+        
+        
+        
+        
+        try {
+        	System.out.println("Waiting for echo...");
+        	echoCountDown.await();
+        	System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+        //broadcastMessageEcho.add(checkBroadcast);
+        
+        
+        
+        Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>(), clients.get(decipheredMessage.getDestination()), 0); //case the client does not exist
+        if (storage.checkFileExists(clients.get(decipheredMessage.getDestination()))) {
+            Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
+
+            if (decipheredMessage.getDestination().equals(decipheredMessage.getSender()))
+                message = new Message(manager.getPublicKey(), value.getBalance(), value.getPendingTransfers(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
+            else
+                message = new Message(manager.getPublicKey(), value.getBalance(), null, clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
+        }
+        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
+
+        return cipheredMessage;
+    }
+
+
+    public synchronized CipheredMessage receive(CipheredMessage msg) throws RemoteException {
+
+        if (isServerCrashed())
+            throw new RemoteException();
+
+        Message decipheredMessage = manager.decipherCipheredMessage(msg);
+
+
+        
+        
+        
+        Message message = new Message(serverKeyPair.getPublic(), false, 0);
+
+        Ledger destiny = storage.readClient(clients.get(decipheredMessage.getSender()));
+
+        if(destiny.getLastWriteTimestamp() < decipheredMessage.getTimestamp()) {
+            Iterator<Transaction> i = destiny.getPendingTransfers().iterator();
+            while (i.hasNext()) {
+                Transaction t = i.next();
+                if (decipheredMessage.getTransaction().myEquals(t)) {
+                    Ledger sender = storage.readClient(t.getSender());
+                    destiny.receiveBalance(t.getAmount());
+                    if (t.getIntegrityCheck() != null)
+                        System.out.println("Test Ttransaction:\n" + t.getIntegrityCheck().getDigitalSignature());
+                    else
+                        System.out.println("NULLLLLLLLLLLLLLL");
+                    destiny.addTransfers(t);
+                    sender.addTransfers(t);
+
+                    //Write to file BUG
+                    i.remove();
+                    try {
+                        storage.writeClient(t.getSender(), sender);
+                        storage.writeClient(t.getReceiver(), destiny);
+                        break;
+                    } catch (JsonGenerationException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (JsonMappingException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (FileNotFoundException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+            lastWrite = msg;
+            destiny.setLastWriteTimestamp(decipheredMessage.getTimestamp());
+            message = new Message(serverKeyPair.getPublic(), true, destiny.getLastWriteTimestamp());
+        }
+        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
+        return cipheredMessage;
+    }
+
+    public CipheredMessage audit(CipheredMessage msg) throws RemoteException {
+
+        if (isServerCrashed())
+            throw new RemoteException();
+
+        Message decipheredMessage = manager.decipherCipheredMessage(msg);
+
+
+
+
+
+        
+
+        Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
+
+        Message message = new Message(manager.getPublicKey(), value.getBalance(), value.getTransfers(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
+
+        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
+        return cipheredMessage;
+    }
+
+    @Override
+    public CipheredMessage clientHasRead(CipheredMessage msg) throws RemoteException {
+        Message decipheredMessage = manager.decipherCipheredMessage(msg);
+
+        Ledger toBeUpdated = storage.readClient(clients.get(decipheredMessage.getCheckedKey()));
+        Message message = new Message(serverKeyPair.getPublic(), false, toBeUpdated.getLastWriteTimestamp());
+        if(toBeUpdated.getLastWriteTimestamp() < decipheredMessage.getTimestamp()) {
+            if (decipheredMessage.getTransactions() != null) {
+                if (decipheredMessage.isAudit())
+                    toBeUpdated.setPendingTransfers(decipheredMessage.getTransactions());
+                else
+                    toBeUpdated.setTransfers(decipheredMessage.getTransactions());
+            }
+            toBeUpdated.setBalance(decipheredMessage.getAmount());
+            toBeUpdated.setLastWriteTimestamp(decipheredMessage.getTimestamp());
+            try {
+                storage.writeClient(clients.get(decipheredMessage.getCheckedKey()), toBeUpdated);
+                storage.writeClientBackup(clients.get(decipheredMessage.getCheckedKey()), toBeUpdated);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            message = new Message(serverKeyPair.getPublic(), true, toBeUpdated.getLastWriteTimestamp());
+        }
+        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
+        return cipheredMessage;
+    }
+
+    public void setServerFault(boolean crash) {
+        crashFailure = crash;
+    }
+
+    private boolean isServerCrashed() {
+        return crashFailure;
+    }
+
+    private boolean discardMessage() {
+        if (1 == (new Random().nextInt(1 - 0 + 1) + 0)) {
+            return false;
+        }
+        return true;
+    }
+    
+    
+    
+    
+    
+    
+    
+
+	//Message broadcast
+    //TODO sheng manager.decipherCipheredMessage(msg); error, cannot decipher the msg
+    public void echoBroadcast(CipheredMessage msg) throws RemoteException {
+    	Message decipheredMessage = manager.decipherCipheredMessage(msg);
+    	BroadcastMessage bcm=decipheredMessage.getBcm();
+    	//if there is no BroadcastMessage, then add and broadcast
+    	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getDigitalsign).filter(bcm.getDigitalsign()::equals).findFirst().isPresent()) {
+    		for(String s:serversPublicKey.keySet())
+    			if(serversPublicKey.get(s).equals(decipheredMessage.getDestination())) {
+    				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
+    				tmp.echoServer(s);
+    				broadcastMessageEcho.add(tmp);
+    	    		echoCountDown.countDown();
+					System.out.println("Echo Broadcast add "+s);
+    			}
+    		
+    	//else it only turn it true
+    	}else {
+    		//Compare boolean, 
+    		//if there is a server that becomes true and in my list it isn't 
+
+    		for(int i=0;i<broadcastMessageEcho.size();i++)
+	    		if(bcm.getDigitalsign().equals(broadcastMessageEcho.get(i).getDigitalsign())) {
+	    			for(String s:serversPublicKey.keySet())
+	        			if(serversPublicKey.get(s).equals(decipheredMessage.getDestination())&&
+	    	    				broadcastMessageEcho.get(i).serverEchoed(s)) {
+	        				broadcastMessageEcho.get(i).echoServer(s);
+	        				echoCountDown.countDown();
+	    					System.out.println("Echo Broadcast add "+s);
+	        			}
+	    			
+	    		}
+    		//else nothing
+    	}
+    }
+    public void readyBroadcast(CipheredMessage msg) throws RemoteException {
+    	
+    }
+    public void deliveryBroadcast(CipheredMessage msg) throws RemoteException {
+    	
+    }
+    
+    
+    private void echoSelf(BroadcastMessage checkBroadcast) throws RemoteException {
+    	
+    	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getDigitalsign).filter(checkBroadcast.getDigitalsign()::equals).findFirst().isPresent()) {
+        	
+    		//TODO broadcast echoBroadcast(CipheredMessage)
+    		
+    		
+    		for (int i = 0; i < servers.size(); i++) {
+        		if((i+1)==serverNumber) {
+        			checkBroadcast.echoServer(nameServer);
+            		broadcastMessageEcho.add(checkBroadcast);
+            		echoCountDown.countDown();
+        			continue;
+        		}
+        		final int index=i+1;
+        		service.execute(() -> {
+        			
+    	    		try {
+    	    			Message msg=new Message(manager.getPublicKey(), manager.getPublicKeyBy("server"+(index)), checkBroadcast);
+            			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index)));
+	    				servers.get(index).echoBroadcast(cipheredMessage);
+    	
+    	            } catch (RemoteException e) {
+    	                System.out.println("Connection fail...");
+    	                System.out.println("Server[" + (index) + "] connection failed");
+    	            } catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+        		});
+        	}
+    	}
+    }
+    private void readySelf(BroadcastMessage msg) throws RemoteException {
+    	
+    }
+    private void deliverySelf(BroadcastMessage msg) throws RemoteException {
+    	
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     private boolean registerEcho(FunctionRegister register) throws RemoteException{
     	//Authenticated Double-Echo Broadcast page 118 Echo
     	
@@ -390,321 +813,23 @@ public class Server implements RemoteServerInterface {
     }
     */
     
-    public boolean register(String clientName, PublicKey publickey) throws RemoteException {
-    	
-    	if (isServerCrashed())
-            throw new RemoteException();
-    	
-    	int readID=rid+1;
-    	
-    	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, totalServerNumber);
-    	/*
-    	//ECHO
-    	try{
-	    	if(!(registerEcho(register))){
-	    		System.out.println("Error with message and echo message!");
-	    		return false;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with message and echo message!");
-    		return false;
-    	}
-    	
-    	//READY
-    	try{
-	    	if(!(registerReady(register))){
-	    		System.out.println("Error with ready and delivery message!");
-	    		return false;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with ready and delivery message!");
-    		return false;
-    	}
-*/
-        if (!storage.checkFileExists(clientName)) {
-            try {
-                Ledger ledger = new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>());
-                storage.writeClient(clientName, ledger);
-                storage.writeClientBackup(clientName, ledger);
-                //Confirm write and read
-                rid=readID;
-            } catch (JsonGenerationException e) {
-                e.printStackTrace();
-                return false;
-            } catch (JsonMappingException e) {
-                e.printStackTrace();
-                return false;
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                return false;
-            } catch (IOException e) {
-                e.printStackTrace();
-                return false;
-            }
-        } else {
-            System.out.println("User already registered!");
-            
-        }
-        if (!clients.containsKey(clientName)) {
-            clients.put(publickey, clientName);
-            System.out.println("Test-> reading " + clientName + " file:\n" + storage.readClient(clientName).toString());
-        }
-    	
-    	
-    	/*TODO not necessary part2?
-        try{
-	    	if(!registerDelivery(register)){
-	    		System.out.println("Error with delivery message!");
-	    		return;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with delivery message!");
-    		return;
-    	}
-    	*/
-    	return true;
-    }
-
-    //PublicKey source, PublicKey destination, int amount
-    public synchronized CipheredMessage send(CipheredMessage msg) throws RemoteException {
-
-        if (isServerCrashed())
-            throw new RemoteException();
-
-        System.out.println("Deciphering message");
-        Message decipheredMessage = manager.decipherCipheredMessage(msg);
-
-        taskCounter++;
-        List<String> receivedTask = new ArrayList<String>();
-        receivedTask.add("send");
-        receivedTask.add(decipheredMessage.getCheckedName());
-        receivedTask.add(Base64.getEncoder().encodeToString(decipheredMessage.getDestination().getEncoded()));
-        receivedTask.add(String.valueOf(decipheredMessage.getAmount()));
-        messageManager.addTask(taskCounter, receivedTask);
-
-
-        Message message = new Message(serverKeyPair.getPublic(), false, -1); //case the client does not exist
-        if (storage.checkFileExists(clients.get(decipheredMessage.getSender()))) {
-
-
-            Ledger sender = storage.readClient(clients.get(decipheredMessage.getSender()));
-            if(sender.getLastWriteTimestamp() < decipheredMessage.getTimestamp()) {
-                sender.setLastWriteTimestamp(decipheredMessage.getTimestamp());
-                if (sender.sendBalance(decipheredMessage.getAmount())) {
-                    Ledger destiny = storage.readClient(clients.get(decipheredMessage.getDestination())); //destiny public key, not name
-                    destiny.addPendingTransfers(new Transaction(clients.get(decipheredMessage.getSender()),
-                            clients.get(decipheredMessage.getDestination()), decipheredMessage.getAmount(), manager.getDigitalSign(msg)));
-
-                    try {
-                        storage.writeClient(clients.get(decipheredMessage.getDestination()), destiny);
-                        storage.writeClient(clients.get(decipheredMessage.getSender()), sender);
-                        //Write to backup file
-                        storage.writeClientBackup(clients.get(decipheredMessage.getDestination()), destiny);
-                        storage.writeClientBackup(clients.get(decipheredMessage.getSender()), sender);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    message = new Message(serverKeyPair.getPublic(), true, sender.getLastWriteTimestamp());
-                }
-            } else System.out.println("Message out of date - MSG: " + decipheredMessage.getTimestamp() + " TIME: " + sender.getLastWriteTimestamp());
-
-        }
-
-        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
-        return cipheredMessage;
-
-    }
-
-
-    public CipheredMessage check(CipheredMessage msg) throws RemoteException {
-
-        if (isServerCrashed())
-            throw new RemoteException();
-
-        Message decipheredMessage = manager.decipherCipheredMessage(msg);
-        System.out.println(clients.get(decipheredMessage.getSender()) + ":\n" + decipheredMessage.getSender());
-        System.out.println(clients.get(decipheredMessage.getDestination()) + ":\n" + decipheredMessage.getDestination());
-
-        taskCounter++;
-        List<String> receivedTask = new ArrayList<String>();
-        receivedTask.add("check");
-        receivedTask.add(decipheredMessage.getCheckedName());
-        receivedTask.add(Base64.getEncoder().encodeToString(decipheredMessage.getDestination().getEncoded()));
-
-        messageManager.addTask(taskCounter, receivedTask);
-
-        Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>(), clients.get(decipheredMessage.getDestination()), 0); //case the client does not exist
-        if (storage.checkFileExists(clients.get(decipheredMessage.getDestination()))) {
-            Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
-
-            if (decipheredMessage.getDestination().equals(decipheredMessage.getSender()))
-                message = new Message(manager.getPublicKey(), value.getBalance(), value.getPendingTransfers(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
-            else
-                message = new Message(manager.getPublicKey(), value.getBalance(), null, clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
-        }
-        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
-
-        return cipheredMessage;
-    }
-
-
-    public synchronized CipheredMessage receive(CipheredMessage msg) throws RemoteException {
-
-        if (isServerCrashed())
-            throw new RemoteException();
-
-        Message decipheredMessage = manager.decipherCipheredMessage(msg);
-
-        taskCounter++;
-        List<String> receivedTask = new ArrayList<String>();
-        receivedTask.add("receive");
-        receivedTask.add(decipheredMessage.getCheckedName());
-//		receivedTask.add(Base64.getEncoder().encodeToString(decipheredMessage.getDestination().getEncoded()));
-        receivedTask.add(String.valueOf(decipheredMessage.getAmount()));
-        messageManager.addTask(taskCounter, receivedTask);
-
-        Message message = new Message(serverKeyPair.getPublic(), false, 0);
-
-        Ledger destiny = storage.readClient(clients.get(decipheredMessage.getSender()));
-
-        if(destiny.getLastWriteTimestamp() < decipheredMessage.getTimestamp()) {
-            Iterator<Transaction> i = destiny.getPendingTransfers().iterator();
-            while (i.hasNext()) {
-                Transaction t = i.next();
-                if (decipheredMessage.getTransaction().myEquals(t)) {
-                    Ledger sender = storage.readClient(t.getSender());
-                    destiny.receiveBalance(t.getAmount());
-                    if (t.getIntegrityCheck() != null)
-                        System.out.println("Test Ttransaction:\n" + t.getIntegrityCheck().getDigitalSignature());
-                    else
-                        System.out.println("NULLLLLLLLLLLLLLL");
-                    destiny.addTransfers(t);
-                    sender.addTransfers(t);
-
-                    //Write to file BUG
-                    i.remove();
-                    try {
-                        storage.writeClient(t.getSender(), sender);
-                        storage.writeClient(t.getReceiver(), destiny);
-                        break;
-                    } catch (JsonGenerationException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (JsonMappingException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (FileNotFoundException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
-            }
-            lastWrite = msg;
-            destiny.setLastWriteTimestamp(decipheredMessage.getTimestamp());
-            message = new Message(serverKeyPair.getPublic(), true, destiny.getLastWriteTimestamp());
-        }
-        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
-        return cipheredMessage;
-    }
-
-    public CipheredMessage audit(CipheredMessage msg) throws RemoteException {
-
-        if (isServerCrashed())
-            throw new RemoteException();
-
-        Message decipheredMessage = manager.decipherCipheredMessage(msg);
-
-        //check with other servers the tasks the received tasks
-        //and if necessary change/update the receivedtasks file
-        // only then insert the new tas
-
-        //default values only to fill
-
-        taskCounter++;
-        List<String> receivedTask = new ArrayList<String>();
-        receivedTask.add("audit");
-        receivedTask.add(decipheredMessage.getCheckedName());
-        receivedTask.add(Base64.getEncoder().encodeToString(decipheredMessage.getDestination().getEncoded()));
-
-        messageManager.addTask(taskCounter, receivedTask);
-
-        Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
-
-        Message message = new Message(manager.getPublicKey(), value.getBalance(), value.getTransfers(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
-
-        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
-        return cipheredMessage;
-    }
-
-    @Override
-    public CipheredMessage clientHasRead(CipheredMessage msg) throws RemoteException {
-        Message decipheredMessage = manager.decipherCipheredMessage(msg);
-
-        Ledger toBeUpdated = storage.readClient(clients.get(decipheredMessage.getCheckedKey()));
-        Message message = new Message(serverKeyPair.getPublic(), false, toBeUpdated.getLastWriteTimestamp());
-        if(toBeUpdated.getLastWriteTimestamp() < decipheredMessage.getTimestamp()) {
-            if (decipheredMessage.getTransactions() != null) {
-                if (decipheredMessage.isAudit())
-                    toBeUpdated.setPendingTransfers(decipheredMessage.getTransactions());
-                else
-                    toBeUpdated.setTransfers(decipheredMessage.getTransactions());
-            }
-            toBeUpdated.setBalance(decipheredMessage.getAmount());
-            toBeUpdated.setLastWriteTimestamp(decipheredMessage.getTimestamp());
-            try {
-                storage.writeClient(clients.get(decipheredMessage.getCheckedKey()), toBeUpdated);
-                storage.writeClientBackup(clients.get(decipheredMessage.getCheckedKey()), toBeUpdated);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            message = new Message(serverKeyPair.getPublic(), true, toBeUpdated.getLastWriteTimestamp());
-        }
-        CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
-        return cipheredMessage;
-    }
-
-    public void setServerFault(boolean crash) {
-        crashFailure = crash;
-    }
-
-    private boolean isServerCrashed() {
-        return crashFailure;
-    }
-
-    private boolean discardMessage() {
-        if (1 == (new Random().nextInt(1 - 0 + 1) + 0)) {
-            return false;
-        }
-        return true;
-    }
     
     
     
     
     
     
-    public CipheredMessage readOperation(CipheredMessage msg) throws RemoteException {
-    	return null;
-    }
-    public CipheredMessage readOperationConclusion(CipheredMessage msg) throws RemoteException {
-    	return null;
-    }
-    public CipheredMessage writeOperation(CipheredMessage msg) throws RemoteException {
-    	return null;
-    }
-    public void test(String test) {
-    	System.out.println(nameServer+" receive: "+test);
-    }
+    
+    
+    
+    
+    
+    
     
     
     
     
 	//Authenticated Double-Echo Broadcast page 118 for register
-
 	@Override
 	public FunctionRegister sendEchoRegister(FunctionRegister register) throws RemoteException {
 	
@@ -758,6 +883,5 @@ public class Server implements RemoteServerInterface {
 		return register;
 	}
     
-
 
 }
