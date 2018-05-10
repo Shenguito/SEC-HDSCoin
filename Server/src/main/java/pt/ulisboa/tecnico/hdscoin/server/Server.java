@@ -275,9 +275,8 @@ public class Server implements RemoteServerInterface {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    if(byzantine)
-                    	message = new Message(serverKeyPair.getPublic(), false, sender.getLastWriteTimestamp());
-                    else
+                    System.out.println(serverNumber + " is byzantine:    " + byzantine);
+                    if(!byzantine)
                     	message = new Message(serverKeyPair.getPublic(), true, sender.getLastWriteTimestamp());
                 }
             } else System.out.println("Message out of date - MSG: " + decipheredMessage.getTimestamp() + " TIME: " + sender.getLastWriteTimestamp());
@@ -700,11 +699,11 @@ public class Server implements RemoteServerInterface {
 
 
 
-	/*@Override
+	
 	public void setByzantine(boolean mode) {
 		byzantine = mode;
 		
-	}*/
+	}
     
 
 }

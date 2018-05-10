@@ -43,6 +43,8 @@ public class Client {
     private boolean test;
     private int testAttack;
     private CountDownLatch readyThreadCounter = new CountDownLatch(3);
+    private int firstTry=0;
+    private CipheredMessage testMessage;
 
     private long writeTimestamp = -1;
 
@@ -164,9 +166,10 @@ public class Client {
                         }
                 );
             }
-            while (!(acklist.keySet().size() > (numServers() + 2) / 2) && !(failedacklist.keySet().size() > (numServers() + 2) / 2)) {
+            while (!(acklist.keySet().size() >= (numServers() + 2) / 2) && !(failedacklist.keySet().size() >= (numServers() + 2) / 2)) {
+            	continue;
             }
-            if(acklist.keySet().size() > (numServers() + 2) / 2) {
+            if(acklist.keySet().size() >= (numServers() + 2) / 2) {
                 System.out.println("SUCCESS");
                 return true;
             } else {
@@ -186,20 +189,32 @@ public class Client {
         final ConcurrentHashMap<String, Message> readList = new ConcurrentHashMap<>();
         final ConcurrentHashMap<String, CipheredMessage> readListCiphers = new ConcurrentHashMap<>();
         readID++;
-        
-        if(test && testAttack==4) {
-        	readID=0;
-        }
+       
         
         try {
-            Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), readID);
-            for (int i = 0; i < numServers(); i++) {
+        	Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), readID);
+        	
+        	
+        	for (int i = 0; i < numServers(); i++) {
             	final CipheredMessage cipheredMessage;
             	if(test && testAttack==3) {
             		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+1));
             	}
-            	else
+            	else if(test && testAttack==4) {
+            		if(firstTry==0) {
+            			System.out.println("first Message: " + msg.getTimestamp());
+    	        		firstTry=1;
+    	        		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
+    	        		testMessage=cipheredMessage;
+            		}else {
+     
+    	        		cipheredMessage = testMessage;
+    	        	}
+            	}else
             		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
+            	
+            	
+            	
                 final int index = i;
                 service.execute(() -> {
                     try {
@@ -403,8 +418,13 @@ public class Client {
         pendingTransaction = new ArrayList<Transaction>();
     }
     
-    /*public void setServerByzantine(boolean mode) {
-    	servers.get(0).setByzantine(mode);
-    }*/
+    public void setServerByzantine(boolean mode) {
+    	try {
+			servers.get(1).setByzantine(mode);
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
 
 }

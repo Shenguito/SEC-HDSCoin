@@ -17,7 +17,7 @@ public class replayAttack {
 	static Client bob;
 	
 	@Test
-	public void spoofingAttack() {
+	public void replayAttack() {
 		try {
 			alice=new Client("localhost", "alice", "alice123",true,4);
 			assertTrue(alice.register());
@@ -31,7 +31,10 @@ public class replayAttack {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		System.out.println("sending first check");
 		assertTrue(alice.check("alice"));
+		System.out.println("ok");
+		System.out.println("sending second check with exactly same message");
 		assertTrue(alice.check("alice"));
 	}
 }

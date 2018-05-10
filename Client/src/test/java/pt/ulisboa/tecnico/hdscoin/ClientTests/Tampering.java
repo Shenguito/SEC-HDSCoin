@@ -30,6 +30,7 @@ public class Tampering {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		System.out.println("Changing ciphered messages to alter data");
 		assertTrue(alice.check("alice"));
 	}
 }

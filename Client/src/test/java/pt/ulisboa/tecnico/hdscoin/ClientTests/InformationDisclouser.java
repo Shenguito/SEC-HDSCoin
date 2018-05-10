@@ -30,6 +30,9 @@ public class InformationDisclouser {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		System.out.println("Sending suposed message of server1 to the other server");
 		assertTrue(alice.check("alice"));
+		System.out.println("1 correct");
+		System.out.println("3 exceptions");
 	}
 }
