@@ -147,6 +147,7 @@ public class Client {
             }
 
 
+
             final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
             final ConcurrentHashMap<String, Message> failedacklist = new ConcurrentHashMap<>();
             writeTimestamp++;
@@ -205,19 +206,8 @@ public class Client {
             	final CipheredMessage cipheredMessage;
             	if(test && testAttack==3) {
             		cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server"+1));
-            	}
-            	else if(test && testAttack==4) {
-            		if(firstTry==0) {
-            			System.out.println("first Message: " + msg.getTimestamp());
-    	        		firstTry=1;
-    	        		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
-    	        		testMessage=cipheredMessage;
-            		}else {
-
-    	        		cipheredMessage = testMessage;
-    	        	}
-            	}else
-            		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
+            	} else
+            		cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server"+(i+1)));
                 final int index = i;
                 service.execute(() -> {
                     try {
@@ -429,6 +419,9 @@ public class Client {
     }
     
 
+    public void setByzantineServer(int pos, RemoteServerInterface serverInterface){
+        servers.set(0, serverInterface);
+    }
 
 
 

@@ -31,10 +31,6 @@ public class replayAttack {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("sending first check");
-		assertTrue(alice.check("alice"));
-		System.out.println("ok");
-		System.out.println("sending second check with exactly same message");
-		assertTrue(alice.check("alice"));
+		assertTrue(alice.send("bob", "1"));
 	}
 }

@@ -30,15 +30,32 @@ public class ServerApplication {
 				System.out.println("'"+number.trim()+"'"+" is not correct!");
 			}
 			*/
+
+			System.out.println("Do you want any of these servers?");
+			System.out.println("1 - No Reply Server");
+			String input = reader.nextLine();
+
+
 			Server[] servers=new Server[serversize];
-			for(int i=0; i<servers.length; i++){
+			int byzantineIndex = 0;
+			if(Integer.parseInt(input) == 1){
 				try {
-					servers[i]=new Server(i+1, serversize);
+					servers[0] = new NoReplyServer(byzantineIndex+1, serversize);
+				} catch (MalformedURLException | NotBoundException e) {
+					e.printStackTrace();
+				}
+				byzantineIndex= 1;
+			}
+			for(; byzantineIndex<servers.length; byzantineIndex++){
+				try {
+					System.out.println("ABC");
+					servers[byzantineIndex]=new Server(byzantineIndex+1, serversize);
 				} catch (MalformedURLException | NotBoundException e) {
 					
 					e.printStackTrace();
 				}
 			}
+
 			while(true){
 				System.out.println("\n"+serversize+" servers are running. Do you confirm?");
 				System.out.println("1-Confirm.");
