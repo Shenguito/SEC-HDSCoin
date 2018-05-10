@@ -36,7 +36,7 @@ public class Client {
     private KeystoreManager keyPairManager;
     private KeyPair clientKeyPair;
     private String clientName;
-    private HashMap<String, PublicKey> serversPublicKey = new HashMap<String, PublicKey>();
+    //private HashMap<String, PublicKey> serversPublicKey = new HashMap<String, PublicKey>();
     //private PublicKey serverPublicKey;
     private boolean isReading = false;
     private long readID = 0;
@@ -106,12 +106,12 @@ public class Client {
 //                	System.out.println("countdown");
 //                }
             	servers.get(index).register(manager.getPublicKey());
-                try {
-                	serversPublicKey.put("server"+(index+1), manager.getPublicKeyBy("server"+(index+1)));
-                } catch (Exception e) {
-                    System.out.println("publickey error");
-                    e.printStackTrace();
-                }
+//                try {
+//                	serversPublicKey.put("server"+(index+1), manager.getPublicKeyBy("server"+(index+1)));
+//                } catch (Exception e) {
+//                    System.out.println("publickey error");
+//                    e.printStackTrace();
+//                }
 
                 System.out.println("You are registered by server[" + (index+1) + "]");
 
@@ -141,15 +141,21 @@ public class Client {
         }
         try {
 
+            if(test && testAttack==4) {
+                System.out.println("Setting timestamp to 0");
+                writeTimestamp = 0;
+            }
+
+
             final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
             final ConcurrentHashMap<String, Message> failedacklist = new ConcurrentHashMap<>();
             writeTimestamp++;
             Message msg = new Message(Double.parseDouble(sendAmount.trim()), manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), writeTimestamp); //SERVER_key represents sendDestination
-            if (serversPublicKey.size() > numServers())
-                System.out.println("I didn't received publickey for all server");
+//            if (serversPublicKey.size() > numServers())
+//                System.out.println("I didn't received publickey for all server");
 
             for (int i = 0; i < numServers(); i++) {
-            	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
+            	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server"+(i+1)));
                 final int index = i;
                 service.execute(() -> {
                             try {
@@ -168,9 +174,6 @@ public class Client {
                             }
                         }
                 );
-            }
-            while (!(acklist.keySet().size() > (numServers() + F) / 2) && !(failedacklist.keySet().size() >= (numServers() + F) / 2)) {
-                continue;
             }
             while (!(acklist.keySet().size() > (numServers() + 2) / 2) && !(failedacklist.keySet().size() > (numServers() + 2) / 2)) {
             }
@@ -201,7 +204,7 @@ public class Client {
             for (int i = 0; i < numServers(); i++) {
             	final CipheredMessage cipheredMessage;
             	if(test && testAttack==3) {
-            		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+1));
+            		cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server"+1));
             	}
             	else if(test && testAttack==4) {
             		if(firstTry==0) {
@@ -210,7 +213,7 @@ public class Client {
     	        		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
     	        		testMessage=cipheredMessage;
             		}else {
-     
+
     	        		cipheredMessage = testMessage;
     	        	}
             	}else
@@ -274,19 +277,26 @@ public class Client {
             e.printStackTrace();
         }
         for (int i = 0; i < numServers(); i++) {
-        	final CipheredMessage newCipheredMessage = manager.makeCipheredMessage(newMsg, serversPublicKey.get("server"+(i+1)));
-            final int index = i;
-            service.execute(() ->
-            {
-                try {
-                    CipheredMessage response = servers.get(index).clientHasRead(newCipheredMessage);
-                    Message responseDeciphered = manager.decipherCipheredMessage(response);
-                    System.out.println("Server was outdated? " + (index + 1) + ": " + responseDeciphered.isConfirm());
-                    acklist.put("" + index, responseDeciphered);
-                } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
-                    e.printStackTrace();
-                }
-            });
+        	CipheredMessage newCipheredMessage;
+			try {
+				newCipheredMessage = manager.makeCipheredMessage(newMsg, manager.getPublicKeyBy("server"+(i+1)));
+
+	            final int index = i;
+	            service.execute(() ->
+	            {
+	                try {
+	                    CipheredMessage response = servers.get(index).clientHasRead(newCipheredMessage);
+	                    Message responseDeciphered = manager.decipherCipheredMessage(response);
+	                    System.out.println("Server was outdated? " + (index + 1) + ": " + responseDeciphered.isConfirm());
+	                    acklist.put("" + index, responseDeciphered);
+	                } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
+	                    e.printStackTrace();
+	                }
+	            });
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
         }
         //not necessary... since you obtained always a response by RMI
         //if you don't get a response by server you get a exception.
@@ -336,7 +346,7 @@ public class Client {
 
             for (int i = 0; i < numServers(); i++) {
 
-            	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
+            	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server"+(i+1)));
                 final int for_index = i;
                 service.execute(() -> {
                     try {
@@ -371,7 +381,7 @@ public class Client {
         try {
             Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), readID);
             for (int i = 0; i < numServers(); i++) {
-            	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
+            	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server"+(i+1)));
                 final int index = i;
                 service.execute(() -> {
                     try {
