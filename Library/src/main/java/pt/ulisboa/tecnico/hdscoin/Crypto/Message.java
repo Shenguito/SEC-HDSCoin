@@ -104,7 +104,13 @@ public class Message implements Serializable{
     public Message getOriginal() {
         return original;
     }
-
+    //for echo
+    public Message(PublicKey sender, PublicKey destination, BroadcastMessage bcm) {
+    	this.sender=sender;
+    	this.destination=destination;
+    	this.bcm=bcm;
+    }
+    //for ready
     public Message(Message message, PublicKey sender, PublicKey destination, BroadcastMessage bcm) {
     	this.message=message;
     	this.sender=sender;

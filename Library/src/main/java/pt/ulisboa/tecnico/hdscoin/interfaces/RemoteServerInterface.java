@@ -18,7 +18,7 @@ import java.util.ArrayList;
 
 
 public interface RemoteServerInterface extends Remote{
-	boolean register(String clientName, PublicKey pubkey) throws RemoteException;
+	void register(PublicKey pubkey) throws RemoteException;
 	CipheredMessage send(CipheredMessage msg) throws RemoteException;
     CipheredMessage check(CipheredMessage msg) throws RemoteException;
     CipheredMessage receive(CipheredMessage msg) throws RemoteException;

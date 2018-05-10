@@ -42,7 +42,7 @@ public class Client {
     private long readID = 0;
     private boolean test;
     private int testAttack;
-    private CountDownLatch readyThreadCounter = new CountDownLatch(3);
+    //private CountDownLatch readyThreadCounter = new CountDownLatch(3);
 
     private long writeTimestamp = -1;
 
@@ -97,10 +97,11 @@ public class Client {
         	final int index=i;
         	service.execute(() -> {
             try {
-                if(servers.get(index).register(clientName, manager.getPublicKey())){
-                	readyThreadCounter.countDown();
-                	System.out.println("countdown");
-                }
+//                if(servers.get(index).register(clientName, manager.getPublicKey())){
+//                	readyThreadCounter.countDown();
+//                	System.out.println("countdown");
+//                }
+            	servers.get(index).register(manager.getPublicKey());
                 try {
                 	serversPublicKey.put("server"+(index+1), manager.getPublicKeyBy("server"+(index+1)));
                 } catch (Exception e) {
@@ -119,12 +120,12 @@ public class Client {
             }
         	});
         }
-        try {
-        	System.out.println("Waiting");
-			readyThreadCounter.await();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+//        try {
+//        	System.out.println("Waiting");
+//			readyThreadCounter.await();
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
 
         return true;
     }
