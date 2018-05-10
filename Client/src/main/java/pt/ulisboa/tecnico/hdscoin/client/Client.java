@@ -42,7 +42,7 @@ public class Client {
     private long readID = 0;
     private boolean test;
     private int testAttack;
-    private CountDownLatch readyThreadCounter = new CountDownLatch(3);
+    //private CountDownLatch readyThreadCounter = new CountDownLatch(3);
     private int firstTry=0;
     private CipheredMessage testMessage;
 
@@ -101,10 +101,11 @@ public class Client {
         	final int index=i;
         	service.execute(() -> {
             try {
-                if(servers.get(index).register(clientName, manager.getPublicKey())){
-                	readyThreadCounter.countDown();
-                	System.out.println("countdown");
-                }
+//                if(servers.get(index).register(clientName, manager.getPublicKey())){
+//                	readyThreadCounter.countDown();
+//                	System.out.println("countdown");
+//                }
+            	servers.get(index).register(manager.getPublicKey());
                 try {
                 	serversPublicKey.put("server"+(index+1), manager.getPublicKeyBy("server"+(index+1)));
                 } catch (Exception e) {
@@ -123,12 +124,12 @@ public class Client {
             }
         	});
         }
-        try {
-        	System.out.println("Waiting");
-			readyThreadCounter.await();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+//        try {
+//        	System.out.println("Waiting");
+//			readyThreadCounter.await();
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
 
         return true;
     }
@@ -168,10 +169,12 @@ public class Client {
                         }
                 );
             }
-            while (!(acklist.keySet().size() >= (numServers() + F) / 2) && !(failedacklist.keySet().size() >= (numServers() + F) / 2)) {
-            	continue;
+            while (!(acklist.keySet().size() > (numServers() + F) / 2) && !(failedacklist.keySet().size() >= (numServers() + F) / 2)) {
+                continue;
             }
-            if(acklist.keySet().size() >= (numServers() + F) / 2) {
+            while (!(acklist.keySet().size() > (numServers() + 2) / 2) && !(failedacklist.keySet().size() > (numServers() + 2) / 2)) {
+            }
+            if(acklist.keySet().size() > (numServers() + F) / 2) {
                 System.out.println("SUCCESS");
                 return true;
             } else {
@@ -191,13 +194,11 @@ public class Client {
         final ConcurrentHashMap<String, Message> readList = new ConcurrentHashMap<>();
         final ConcurrentHashMap<String, CipheredMessage> readListCiphers = new ConcurrentHashMap<>();
         readID++;
-       
-        
+
+
         try {
-        	Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), readID);
-        	
-        	
-        	for (int i = 0; i < numServers(); i++) {
+            Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), readID);
+            for (int i = 0; i < numServers(); i++) {
             	final CipheredMessage cipheredMessage;
             	if(test && testAttack==3) {
             		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+1));
@@ -214,9 +215,6 @@ public class Client {
     	        	}
             	}else
             		cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(i+1)));
-            	
-            	
-            	
                 final int index = i;
                 service.execute(() -> {
                     try {
@@ -411,6 +409,19 @@ public class Client {
         return true;
     }
 
+    public String getClientName() {
+        return clientName;
+    }
+
+
+    public void removePendingTransaction() {
+        pendingTransaction = new ArrayList<Transaction>();
+    }
+    
+
+
+
+
     public boolean decipherCaughtMsg(CipheredMessage msg){
         Message responseDeciphered = manager.decipherCipheredMessage(msg);
         if(responseDeciphered == null) return false;
@@ -427,22 +438,8 @@ public class Client {
         return null;
     }
 
-    public String getClientName() {
-        return clientName;
-    }
 
 
-    public void removePendingTransaction() {
-        pendingTransaction = new ArrayList<Transaction>();
-    }
-    
-    public void setServerByzantine(boolean mode) {
-    	try {
-			servers.get(1).setByzantine(mode);
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    }
+
 
 }

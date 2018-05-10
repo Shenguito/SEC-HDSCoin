@@ -9,6 +9,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Enumeration;
 
 /**
  * Class for handling Crypto specific to our encryption protocol.
@@ -329,5 +330,27 @@ public class CryptoManager {
     public PublicKey getPublicKeyBy(String alias) throws Exception{
     	return keyPairManager.getPublicKeyByName(alias);
     }
+    
+    public String getNamebyAlias(PublicKey publickey) {
+    	String alias=null;
+    	try {
+			Enumeration<String> es = keyPairManager.getKeyStore().aliases();
+			while (es.hasMoreElements()) {
+				alias = (String) es.nextElement();
+				if(getPublicKeyBy(alias).equals(publickey)) {
+					break;
+				}
+			}
+		} catch (KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	return alias;
+    }
+    		
 
 }
