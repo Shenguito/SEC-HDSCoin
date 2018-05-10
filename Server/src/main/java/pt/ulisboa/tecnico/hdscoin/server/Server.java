@@ -68,9 +68,7 @@ public class Server implements RemoteServerInterface {
 	//Authenticated Double-Echo Broadcast based for message exchange
 	/*
 	private ArrayList<BroadcastMessage> broadcastMessageEcho=new ArrayList<BroadcastMessage>(); //receive
-	private CountDownLatch echoCountDown = new CountDownLatch(3);
 	private ArrayList<BroadcastMessage> broadcastMessageReady=new ArrayList<BroadcastMessage>(); //order
-	private CountDownLatch readyCountDown = new CountDownLatch(3);
 	private ArrayList<BroadcastMessage> broadcastMessageDelivery=new ArrayList<BroadcastMessage>(); //write
 	*/
 
@@ -79,11 +77,11 @@ public class Server implements RemoteServerInterface {
 	List<BroadcastMessage> broadcastMessageReady = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
 	List<Message> broadcastMessageDelivery = Collections.synchronizedList(new ArrayList<Message>());
 
-
+	
 	private CountDownLatch echoCountDown = new CountDownLatch(3); 		//[(N+f)/2]+1
 	private CountDownLatch readyCountDown = new CountDownLatch(2);		//f+1
 	private CountDownLatch deliveryCountDown = new CountDownLatch(3);	//2f+1
-
+	
 
 
     private Storage storage;
@@ -200,7 +198,7 @@ public class Server implements RemoteServerInterface {
     	int readID=rid+1;
     	
     	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, totalServerNumber);
-
+    	
         if (!storage.checkFileExists(clientName)) {
             try {
                 Ledger ledger = new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>());
@@ -231,7 +229,7 @@ public class Server implements RemoteServerInterface {
         }
     	
     	
-
+    	
     	return true;
     }
 
@@ -277,9 +275,8 @@ public class Server implements RemoteServerInterface {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    if(byzantine)
-                    	message = new Message(serverKeyPair.getPublic(), false, sender.getLastWriteTimestamp());
-                    else
+                    System.out.println(serverNumber + " is byzantine:    " + byzantine);
+                    if(!byzantine)
                     	message = new Message(serverKeyPair.getPublic(), true, sender.getLastWriteTimestamp());
                 }
             } else System.out.println("Message out of date - MSG: " + decipheredMessage.getTimestamp() + " TIME: " + sender.getLastWriteTimestamp());
@@ -312,9 +309,6 @@ public class Server implements RemoteServerInterface {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-        //broadcastMessageEcho.add(checkBroadcast);
-
-
 
         Message message = new Message(manager.getPublicKey(), 0.0, new ArrayList<Transaction>(), decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), 0); //case the client does not exist
         if (storage.checkFileExists(clients.get(decipheredMessage.getDestination()))) {
@@ -329,7 +323,7 @@ public class Server implements RemoteServerInterface {
         System.out.println("Deliveried");
         return cipheredMessage;
     }
-
+    
 
 
 
@@ -408,7 +402,7 @@ public class Server implements RemoteServerInterface {
 
         //Broadcast
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
-
+        
         try {
         	//System.out.println("Waiting for echo...");
         	deliveryCountDown.await();
@@ -417,8 +411,8 @@ public class Server implements RemoteServerInterface {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-
-
+        
+        
         Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
         String name = storage.getClients().get(decipheredMessage.getDestination());
 
@@ -483,14 +477,14 @@ public class Server implements RemoteServerInterface {
     
     
     
-
-
+    
+    
     //Broadcast echo and ready
-
+    
     private void broadcastEcho(IntegrityCheck integrityCheck, Message msg) {
         final BroadcastMessage checkBroadcast=new BroadcastMessage(integrityCheck, totalServerNumber);
         //System.out.println("Digital signature stored: "+integrityCheck.getStringDigitalSignature());
-
+        
         echoSelf(checkBroadcast, msg);
         try {
         	//System.out.println("Waiting for echo...");
@@ -508,10 +502,10 @@ public class Server implements RemoteServerInterface {
 			e.printStackTrace();
 		}
     }
+    
+    
 
-
-
-
+    
 
     private void echoSelf(BroadcastMessage checkEchoBroadcast, Message message){
     	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getDigitalsign).filter(checkEchoBroadcast.getDigitalsign()::equals).findFirst().isPresent()) {
@@ -528,9 +522,9 @@ public class Server implements RemoteServerInterface {
 		    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
 		    			Message msg=new Message(message, manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkEchoBroadcast);
 	        			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
-
+	
 	    				servers.get(index).echoBroadcast(cipheredMessage);
-
+	
 		            } catch (RemoteException e) {
 		                System.out.println("Connection fail...");
 		                System.out.println("Server[" + (index+1) + "] connection failed");
@@ -541,13 +535,13 @@ public class Server implements RemoteServerInterface {
 	    		});
 	    	}
     	}
-
+    	
     }
     private void readySelf(BroadcastMessage checkReadyBroadcast, Message message){
-
-    	/*
+    	
+    	/* 
     	 * in case broadcastMessageReady has not this BroadcastMessage yet
-    	 *
+    	 * 
     	 * in case broadcastMessageEcho has it && more than (n+f)/2 of servers are true
     	 * then it means that it can do ready
     	 */
@@ -568,7 +562,7 @@ public class Server implements RemoteServerInterface {
 	        			CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
 	        			//System.out.println("server"+(index+1)+"\n"+serversPublicKey.get("server"+(index+1)));
 	    				servers.get(index).readyBroadcast(cipheredMessage);
-
+	
 		            } catch (RemoteException e) {
 		                System.out.println("Connection fail...");
 		                System.out.println("Server[" + (index+1) + "] connection failed");
@@ -579,7 +573,7 @@ public class Server implements RemoteServerInterface {
 	    		});
 	    	}
     	}
-
+    	
     }
 
 
@@ -589,9 +583,9 @@ public class Server implements RemoteServerInterface {
     	Message decipheredMessage = manager.decipherCipheredMessage(msg);
     	BroadcastMessage bcm=decipheredMessage.getBcm();
 
-
+    	
     	//if there is no BroadcastMessage, then add and broadcast
-
+    	
     	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getStringDigitalsign).filter(bcm.getStringDigitalsign()::equals).findFirst().isPresent()) {
     		//ATTENTION, server x does not store his publickey in his map
     		if(decipheredMessage.getDestination().equals(manager.getPublicKey())){
@@ -654,9 +648,9 @@ public class Server implements RemoteServerInterface {
 				    		//readyCountDown.countDown();
 				    		deliveryCountDown.countDown();
 						}
-
+	    			
 	    			if(broadcastMessageReady.get(i).readyServerReceived()>1&&
-	    					!broadcastMessageReady.get(i).serverReadied(myServerName)) { // broadcast ready in case >f
+	    					!broadcastMessageReady.get(i).serverReadied(myServerName)) { // broadcast ready in case >f 
 	    				broadcastMessageReady.get(i).readyServer(myServerName);
 	    				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
 	    				tmp.readyServer(myServerName);
@@ -669,9 +663,9 @@ public class Server implements RemoteServerInterface {
 	    						try {
 	    			    			Message msg2=new Message(decipheredMessage.getMessage(), manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), tmp);
 	    		        			CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg2, serversPublicKey.get("server"+(index+1)));
-
+	    		
 	    		    				servers.get(index).readyBroadcast(cipheredMessage);
-
+	    		
 	    			            } catch (RemoteException e) {
 	    			                System.out.println("Connection fail...");
 	    			                System.out.println("Server[" + (index+1) + "] connection failed");
@@ -683,34 +677,16 @@ public class Server implements RemoteServerInterface {
 	    				}
     					continue;
 	    			}
-
+	    			
 	    		}
-
+    		
     	}
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/*@Override
 	public void setByzantine(boolean mode) {
 		byzantine = mode;
 		
-	}*/
+	}
     
 
 }

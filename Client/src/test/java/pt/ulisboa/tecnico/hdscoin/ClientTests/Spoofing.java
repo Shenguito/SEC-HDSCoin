@@ -30,6 +30,8 @@ public class Spoofing {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		System.out.println("Sending a check with message digest signed with different key");
 		assertTrue(alice.check("alice"));
+		System.out.println("");
 	}
 }

@@ -9,15 +9,7 @@ import java.rmi.RemoteException;
 import org.junit.Test;
 
 import pt.ulisboa.tecnico.hdscoin.client.Client;
-import static org.junit.Assert.assertTrue;
 
-import java.net.MalformedURLException;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-
-import org.junit.Test;
-
-import pt.ulisboa.tecnico.hdscoin.client.Client;
 
 public class ByzantineServer {
 
@@ -29,7 +21,7 @@ public class ByzantineServer {
 		try {
 			alice=new Client("localhost", "alice", "alice123",false,0);
 			assertTrue(alice.register());
-			//alice.setServerByzantine(true);
+			alice.setServerByzantine(true);
 			
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
@@ -41,8 +33,9 @@ public class ByzantineServer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		assertTrue(alice.send("bob", "1"));
-		//alice.setServerByzantine(false);
+		assertTrue(alice.check("alice"));
+		assertTrue(alice.send("bob", "5"));
+		alice.setServerByzantine(false);
 		
 	}
 }

@@ -51,6 +51,11 @@ public class CipheredMessage implements Serializable{
         this.key = toKey.toString();
         
     }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
     @JsonIgnore
     public byte[] getKey() {
         return DatatypeConverter.parseHexBinary(key);
