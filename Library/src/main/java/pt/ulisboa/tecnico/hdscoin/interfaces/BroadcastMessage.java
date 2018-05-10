@@ -34,6 +34,13 @@ public class BroadcastMessage implements Serializable{
 	public IntegrityCheck getDigitalsign() {
 		return digitalsign;
 	}
+	public String getStringDigitalsign() {
+		// TODO Auto-generated method stub
+		return digitalsign.getStringDigitalSignature();
+	}
+	
+	
+	
 	public void echoServer(String server) {
 		if(!echo.get(server)) {
 			echo.put(server, true);
@@ -46,10 +53,10 @@ public class BroadcastMessage implements Serializable{
 				v++;
 		return v;
 	}
-	
 	public boolean serverEchoed(String server) {
 		return echo.get(server);
 	}
+	
 	
 	
 	public void readyServer(String server) {
@@ -64,6 +71,10 @@ public class BroadcastMessage implements Serializable{
 				v++;
 		return v;
 	}
+	public boolean serverReadied(String server) {
+		return ready.get(server);
+	}
+	
 	
 	
 	public void deliveryServer(String server) {
@@ -87,5 +98,7 @@ public class BroadcastMessage implements Serializable{
 	public int deliveryServerReceivedSize() {
 		return delivery.size();
 	}
+	
+	
 	
 }

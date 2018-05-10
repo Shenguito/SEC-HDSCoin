@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
+import pt.ulisboa.tecnico.hdscoin.Crypto.IntegrityCheck;
 import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
 import pt.ulisboa.tecnico.hdscoin.interfaces.BroadcastMessage;
 import pt.ulisboa.tecnico.hdscoin.interfaces.FunctionRegister;
@@ -65,18 +66,23 @@ public class Server implements RemoteServerInterface {
 	
 	
 	//Authenticated Double-Echo Broadcast based for message exchange
+	/*
 	private ArrayList<BroadcastMessage> broadcastMessageEcho=new ArrayList<BroadcastMessage>(); //receive
 	private CountDownLatch echoCountDown = new CountDownLatch(3);
 	private ArrayList<BroadcastMessage> broadcastMessageReady=new ArrayList<BroadcastMessage>(); //order
 	private CountDownLatch readyCountDown = new CountDownLatch(3);
 	private ArrayList<BroadcastMessage> broadcastMessageDelivery=new ArrayList<BroadcastMessage>(); //write
-	private CountDownLatch deliveryCountDown = new CountDownLatch(3);
+	*/
 
-	/*TODO case above does not work
+
 	List<BroadcastMessage> broadcastMessageEcho = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
 	List<BroadcastMessage> broadcastMessageReady = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
-	List<BroadcastMessage> broadcastMessageDelivery = Collections.synchronizedList(new ArrayList<BroadcastMessage>());
-	*/
+	List<Message> broadcastMessageDelivery = Collections.synchronizedList(new ArrayList<Message>());
+
+
+	private CountDownLatch echoCountDown = new CountDownLatch(3); 		//[(N+f)/2]+1
+	private CountDownLatch readyCountDown = new CountDownLatch(2);		//f+1
+	private CountDownLatch deliveryCountDown = new CountDownLatch(3);	//2f+1
 
 
 
@@ -84,7 +90,7 @@ public class Server implements RemoteServerInterface {
     private KeystoreManager keyPairManager;
     private KeyPair serverKeyPair;
     private CryptoManager manager;
-    private String nameServer;
+    private String myServerName;
     private int serverNumber;
     private int totalServerNumber;
     private int taskCounter;
@@ -102,12 +108,12 @@ public class Server implements RemoteServerInterface {
     private ConcurrentHashMap<PublicKey, String> clients;
 
     public Server(int number, int totalServer) throws RemoteException, AlreadyBoundException, MalformedURLException, NotBoundException {
-    	nameServer = "server" + number;
+    	myServerName = "server" + number;
     	serverNumber=number;
     	totalServerNumber=totalServer;
     	servers = new ArrayList<RemoteServerInterface>();
     	serversPublicKey = new HashMap<String, PublicKey>();
-        storage = new Storage(nameServer);
+        storage = new Storage(myServerName);
         taskCounter = 0;
         backupFileCheck();
         connect(number);
@@ -194,32 +200,7 @@ public class Server implements RemoteServerInterface {
     	int readID=rid+1;
     	
     	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, totalServerNumber);
-    	/*
-    	//ECHO
-    	final FunctionRegister register=new FunctionRegister(clientName, publickey, readID, nameServer);
 
-    	//ECHO
-    	try{
-	    	if(!(registerEcho(register))){
-	    		System.out.println("Error with message and echo message!");
-	    		return false;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with message and echo message!");
-    		return false;
-    	}
-    	
-    	//READY
-    	try{
-	    	if(!(registerReady(register))){
-	    		System.out.println("Error with ready and delivery message!");
-	    		return false;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with ready and delivery message!");
-    		return false;
-    	}
-*/
         if (!storage.checkFileExists(clientName)) {
             try {
                 Ledger ledger = new Ledger(publickey, 100, new ArrayList<Transaction>(), new ArrayList<Transaction>());
@@ -250,17 +231,7 @@ public class Server implements RemoteServerInterface {
         }
     	
     	
-    	/*TODO not necessary part2?
-        try{
-	    	if(!registerDelivery(register)){
-	    		System.out.println("Error with delivery message!");
-	    		return;
-	    	}
-    	}catch(RemoteException e){
-    		System.out.println("RemoteException error... Error with delivery message!");
-    		return;
-    	}
-    	*/
+
     	return true;
     }
 
@@ -273,13 +244,16 @@ public class Server implements RemoteServerInterface {
         System.out.println("Deciphering message");
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
-
-
-
-        //TODO
-        final BroadcastMessage checkBroadcast=new BroadcastMessage(manager.getDigitalSign(msg), totalServerNumber);
-
-
+        //Broadcast
+        broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
+        try {
+        	//System.out.println("Waiting for echo...");
+        	deliveryCountDown.await();
+        	broadcastMessageDelivery.add(decipheredMessage);
+        	//System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
 
         Message message = new Message(serverKeyPair.getPublic(), false, -1); //case the client does not exist
@@ -328,20 +302,13 @@ public class Server implements RemoteServerInterface {
         System.out.println("Target is "+clients.get(decipheredMessage.getDestination()) + ":\n" + decipheredMessage.getDestination());
 
 
-
-        //TODO
-        final BroadcastMessage checkBroadcast=new BroadcastMessage(manager.getDigitalSign(msg), totalServerNumber);
-        //TODO Sheng
-        echoSelf(checkBroadcast);
-
-
-
-
-
+        //Broadcast
+        broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
         try {
-        	System.out.println("Waiting for echo...");
-        	echoCountDown.await();
-        	System.out.println("Echo worked...");
+        	//System.out.println("Waiting for echo...");
+        	deliveryCountDown.await();
+        	broadcastMessageDelivery.add(decipheredMessage);
+        	//System.out.println("Echo worked...");
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -359,9 +326,11 @@ public class Server implements RemoteServerInterface {
                 message = new Message(manager.getPublicKey(), value.getBalance(), null,  decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
         }
         CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
-
+        System.out.println("Deliveried");
         return cipheredMessage;
     }
+
+
 
 
     public synchronized CipheredMessage receive(CipheredMessage msg) throws RemoteException {
@@ -371,8 +340,16 @@ public class Server implements RemoteServerInterface {
 
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
-
-
+        //Broadcast
+        broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
+        try {
+        	//System.out.println("Waiting for echo...");
+        	deliveryCountDown.await();
+        	broadcastMessageDelivery.add(decipheredMessage);
+        	//System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
 
         Message message = new Message(serverKeyPair.getPublic(), false, 0);
@@ -428,6 +405,19 @@ public class Server implements RemoteServerInterface {
             throw new RemoteException();
 
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
+
+        //Broadcast
+        broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
+
+        try {
+        	//System.out.println("Waiting for echo...");
+        	deliveryCountDown.await();
+        	broadcastMessageDelivery.add(decipheredMessage);
+        	//System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 
         Ledger value = storage.readClient(clients.get(decipheredMessage.getDestination()));
         String name = storage.getClients().get(decipheredMessage.getDestination());
@@ -495,14 +485,114 @@ public class Server implements RemoteServerInterface {
     
 
 
+    //Broadcast echo and ready
+
+    private void broadcastEcho(IntegrityCheck integrityCheck, Message msg) {
+        final BroadcastMessage checkBroadcast=new BroadcastMessage(integrityCheck, totalServerNumber);
+        //System.out.println("Digital signature stored: "+integrityCheck.getStringDigitalSignature());
+
+        echoSelf(checkBroadcast, msg);
+        try {
+        	//System.out.println("Waiting for echo...");
+        	echoCountDown.await();
+        	//System.out.println("Echo worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+        readySelf(checkBroadcast, msg);
+        try {
+        	//System.out.println("Waiting for ready...");
+        	deliveryCountDown.await();
+        	//System.out.println("Ready worked...");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+    }
+
+
+
+
+
+    private void echoSelf(BroadcastMessage checkEchoBroadcast, Message message){
+    	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getDigitalsign).filter(checkEchoBroadcast.getDigitalsign()::equals).findFirst().isPresent()) {
+			checkEchoBroadcast.echoServer(myServerName);
+			broadcastMessageEcho.add(checkEchoBroadcast);
+			echoCountDown.countDown();
+			for (int i = 0; i < servers.size(); i++) {
+	    		if((i+1)==serverNumber) { // it does not self send, above 4 lines already did it
+	    			continue;
+	    		}
+	    		final int index=i;
+	    		service.execute(() -> {
+		    		try {
+		    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
+		    			Message msg=new Message(message, manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkEchoBroadcast);
+	        			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
+
+	    				servers.get(index).echoBroadcast(cipheredMessage);
+
+		            } catch (RemoteException e) {
+		                System.out.println("Connection fail...");
+		                System.out.println("Server[" + (index+1) + "] connection failed");
+		            } catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    		});
+	    	}
+    	}
+
+    }
+    private void readySelf(BroadcastMessage checkReadyBroadcast, Message message){
+
+    	/*
+    	 * in case broadcastMessageReady has not this BroadcastMessage yet
+    	 *
+    	 * in case broadcastMessageEcho has it && more than (n+f)/2 of servers are true
+    	 * then it means that it can do ready
+    	 */
+    	if(!broadcastMessageReady.stream().map(BroadcastMessage::getDigitalsign).filter(checkReadyBroadcast.getDigitalsign()::equals).findFirst().isPresent()) {
+			checkReadyBroadcast.readyServer(myServerName);
+			broadcastMessageReady.add(checkReadyBroadcast);
+			//readyCountDown.countDown();
+			deliveryCountDown.countDown();
+			for (int i = 0; i < servers.size(); i++) {
+	    		if((i+1)==serverNumber) { // it does not self send, above 4 lines already did it
+	    			continue;
+	    		}
+	    		final int index=i;
+	    		service.execute(() -> {
+		    		try {
+		    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
+		    			Message msg=new Message(message, manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkReadyBroadcast);
+	        			CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
+	        			//System.out.println("server"+(index+1)+"\n"+serversPublicKey.get("server"+(index+1)));
+	    				servers.get(index).readyBroadcast(cipheredMessage);
+
+		            } catch (RemoteException e) {
+		                System.out.println("Connection fail...");
+		                System.out.println("Server[" + (index+1) + "] connection failed");
+		            } catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    		});
+	    	}
+    	}
+
+    }
+
+
+
 	//Message broadcast
-    //TODO sheng manager.decipherCipheredMessage(msg); error, cannot decipher the msg
     public void echoBroadcast(CipheredMessage msg) throws RemoteException {
     	Message decipheredMessage = manager.decipherCipheredMessage(msg);
     	BroadcastMessage bcm=decipheredMessage.getBcm();
 
+
     	//if there is no BroadcastMessage, then add and broadcast
-    	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getDigitalsign).filter(bcm.getDigitalsign()::equals).findFirst().isPresent()) {
+
+    	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getStringDigitalsign).filter(bcm.getStringDigitalsign()::equals).findFirst().isPresent()) {
     		//ATTENTION, server x does not store his publickey in his map
     		if(decipheredMessage.getDestination().equals(manager.getPublicKey())){
 				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
@@ -519,309 +609,86 @@ public class Server implements RemoteServerInterface {
     		//Compare boolean,
     		//if there is a server that becomes true and in my list it isn't
     		for(int i=0;i<broadcastMessageEcho.size();i++)
-	    		if(bcm.getDigitalsign().equals(broadcastMessageEcho.get(i).getDigitalsign())) {
-	    			for(String s:serversPublicKey.keySet())
+	    		if(bcm.getStringDigitalsign().equals(broadcastMessageEcho.get(i).getStringDigitalsign())) {
+	    			for(String s:serversPublicKey.keySet()) { // echoServer, which means server echo received
 	    				if(serversPublicKey.get(s).equals(decipheredMessage.getSender())&&
-	    						broadcastMessageEcho.get(i).serverEchoed(s)){
+	    						!broadcastMessageEcho.get(i).serverEchoed(s)){
 	    					broadcastMessageEcho.get(i).echoServer(s);
 				    		echoCountDown.countDown();
 						}
+	    			}
 	    		}
     		//else nothing
     	}
     }
     public void readyBroadcast(CipheredMessage msg) throws RemoteException {
+    	//System.out.println("Readying");
+    	//System.out.println("receiving"+myServerName+"\n"+manager.getPublicKey());
+    	Message decipheredMessage = manager.decipherCipheredMessage(msg);
+    	BroadcastMessage bcm=decipheredMessage.getBcm();
 
-    }
-    public void deliveryBroadcast(CipheredMessage msg) throws RemoteException {
-
-    }
-
-
-    private void echoSelf(BroadcastMessage checkBroadcast) throws RemoteException {
-
-    	if(!broadcastMessageEcho.stream().map(BroadcastMessage::getDigitalsign).filter(checkBroadcast.getDigitalsign()::equals).findFirst().isPresent()) {
-
-    		//TODO broadcast echoBroadcast(CipheredMessage)
-
-
-    		for (int i = 0; i < servers.size(); i++) {
-        		if((i+1)==serverNumber) {
-        			checkBroadcast.echoServer(nameServer);
-            		broadcastMessageEcho.add(checkBroadcast);
-            		echoCountDown.countDown();
-        			continue;
-        		}
-        		final int index=i;
-        		service.execute(() -> {
-
-    	    		try {
-    	    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
-    	    			Message msg=new Message(manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), checkBroadcast);
-            			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, serversPublicKey.get("server"+(index+1)));
-
-	    				servers.get(index).echoBroadcast(cipheredMessage);
-
-    	            } catch (RemoteException e) {
-    	                System.out.println("Connection fail...");
-    	                System.out.println("Server[" + (index+1) + "] connection failed");
-    	            } catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+    	//if there is no BroadcastMessage, then add and broadcast
+    	if(!broadcastMessageReady.stream().map(BroadcastMessage::getStringDigitalsign).filter(bcm.getStringDigitalsign()::equals).findFirst().isPresent()) {
+    		//ATTENTION, server x does not store his publickey in his map (HashMap<String, PublicKey> serversPublicKey)
+    		if(decipheredMessage.getDestination().equals(manager.getPublicKey())){
+				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
+				for(String s:serversPublicKey.keySet())
+					if(serversPublicKey.get(s).equals(decipheredMessage.getSender())){
+						tmp.readyServer(s);
+						broadcastMessageReady.add(tmp);
+						//readyCountDown.countDown();
+						deliveryCountDown.countDown();
 					}
-        		});
-        	}
-    	}
-    }
-    private void readySelf(BroadcastMessage msg) throws RemoteException {
 
-    }
-    private void deliverySelf(BroadcastMessage msg) throws RemoteException {
-
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    private boolean registerEcho(FunctionRegister register) throws RemoteException{
-    	//Authenticated Double-Echo Broadcast page 118 Echo
-
-    	final ConcurrentHashMap<String, FunctionRegister> acklist = new ConcurrentHashMap<>();
-
-    	//add myself that I'm receiving this message
-    	if(registerEchoMessage.get(nameServer)==null){
-    		ArrayList<FunctionRegister> tmpList=new ArrayList<FunctionRegister>();
-    		tmpList.add(register);
-    		registerEchoMessage.put(nameServer, tmpList);
-    	}else{
-    		ArrayList<FunctionRegister> tmpList=registerEchoMessage.get(nameServer);
-    		tmpList.add(register);
-    		registerEchoMessage.put(nameServer, tmpList);
-    	}
-    	System.out.println(nameServer+" : "+registerEchoMessage.get(nameServer).size()+" : Server size: "+servers.size());
-    	int equal=0;
-    	int different=0;
-    	for (int i = 0; i < servers.size(); i++) {
-    		if((i+1)==serverNumber) {
-    			FunctionRegister registerReturn=sendEchoRegister(register);
-    			acklist.put(nameServer, registerReturn);
-    			continue;
-    		}
-    		final int index=i;
-    		service.execute(() -> {
-	    		try {
-	    			FunctionRegister registerReturn=servers.get(index).sendEchoRegister(register);
-	    			for(int j=0;registerReturn==null&&j<10;j++){
-	    				//TODO  in case after 10 tries return null, BUG
-	    				registerReturn=servers.get(index).sendEchoRegister(register);
-
-	    			}
-	    			acklist.put("server"+(index+1), registerReturn);
-
-	            } catch (RemoteException e) {
-	                System.out.println("Connection fail...");
-	                System.out.println("Server[" + (index+1) + "] connection failed");
-	            }
-    		});
-    	}
-    	//Wait for values;
-    	//TODO CountDownLatch???
-    	while (!(acklist.keySet().size() > (totalServerNumber + 1) / 2)) { //(N+f)/2
-			try {
-				Thread.sleep(10);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
-        }
-		//Compare received Value;
-		for(int i=0; i<acklist.size();i++) {
-			try{
-				System.out.println("Test1: "+acklist.get(nameServer).toString());
-				System.out.println("Test2: "+acklist.get("server"+(i+1)).toString());
-				if(acklist.get(nameServer).myEquals(acklist.get("server"+(i+1)))) {
-					equal++;
-				}else{
-					different++;
-				}
-			}catch(Exception e){
-				different++;
-			}
-
-	    }
-		//if there is no more than 5 equals value, then operation is cancelled;
-    	if(equal<=(totalServerNumber + 1) / 2) {
-    		System.out.println("Equals values == "+equal);
-    		System.out.println("There are "+different+" values");
-			return false;
-		}
-
-    	return true;
-    }
-
-    private boolean registerReady(FunctionRegister register) throws RemoteException{
-    	//Authenticated Double-Echo Broadcast page 118 Ready
-
-    	//add myself that I'm ready for this message
-    	if(registerReadyMessage.get(nameServer)==null){
-    		ArrayList<FunctionRegister> tmpList=new ArrayList<FunctionRegister>();
-    		tmpList.add(register);
-    		registerReadyMessage.put(nameServer, tmpList);
-    	}else{
-    		ArrayList<FunctionRegister> tmpList=registerReadyMessage.get(nameServer);
-    		tmpList.add(register);
-    		registerReadyMessage.put(nameServer, tmpList);
-    	}
-
-
-    	final ConcurrentHashMap<String, ArrayList<FunctionRegister>> acklist = new ConcurrentHashMap<>();
-    	int equal=0;
-    	int different=0;
-    	for (int i = 0; i < servers.size(); i++) {
-    		if((i+1)==serverNumber) {
-    			ArrayList<FunctionRegister> registerReturn=sendReadyRegister(register);
-    			acklist.put(nameServer, registerReturn);
-    			continue;
-    		}
-    		final int index=i;
-    		service.execute(() -> {
-	    		try {
-	    			ArrayList<FunctionRegister> registerReturn=servers.get(index).sendReadyRegister(register);
-	    			while(registerReturn.size()<registerReadyMessage.get(nameServer).size())
-	    				registerReturn=servers.get(index).sendReadyRegister(register);
-	    			acklist.put("server"+(index+1), registerReturn);
-
-	            } catch (RemoteException e) {
-	                System.out.println("Connection fail...");
-	                System.out.println("Server[" + (index+1) + "] connection failed");
-	            }
-    		});
-    	}
-    	//Wait for values;
-    	while (!(acklist.keySet().size() > (totalServerNumber + 1) / 2)) { //(N+f)/2
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-        }
-		//Compare received Value;
-    	int listEqual=0;
-		for(int i=0; i<acklist.size();i++) {
-			System.out.println(nameServer+" check: "+acklist.get(nameServer).size()+" vs "+acklist.get("server"+(i+1)).size());
-			if(acklist.get(nameServer).size()!=1){
-				for(int j=0; j<acklist.get(nameServer).size();j++){
-					try{
-						if(acklist.get(nameServer).get(j).myEquals(acklist.get("server"+(i+1)).get(j))) {
-							listEqual++;
+    	//else it only turn it true
+    	}else {
+    		//Compare boolean,
+    		//if there is a server that becomes true and in my list it isn't
+    		for(int i=0;i<broadcastMessageReady.size();i++)
+	    		if(bcm.getStringDigitalsign().equals(broadcastMessageReady.get(i).getStringDigitalsign())) {
+	    			for(String s:serversPublicKey.keySet())
+	    				if(serversPublicKey.get(s).equals(decipheredMessage.getSender())&&
+	    						!broadcastMessageReady.get(i).serverReadied(s)){
+	    					broadcastMessageReady.get(i).readyServer(s);
+				    		//readyCountDown.countDown();
+				    		deliveryCountDown.countDown();
 						}
-					}catch(Exception e){
-						// case others server don't have same list size, same server will get delay
-						e.printStackTrace();
-					}
-					if(j==(acklist.get(nameServer).size()-1)){
-						System.out.println(nameServer+" test: "+listEqual+" : "+acklist.get(nameServer).size());
-						if(listEqual==acklist.get(nameServer).size())
-							equal++;
-						else
-							different++;
-					}
-				}
-			}else{
-				if(acklist.get(nameServer).get(0).myEquals(acklist.get("server"+(i+1)).get(0)))
-					equal++;
-				else
-					different++;
-			}
 
-	    }
-		//if there is no more than 5 equals value, then operation is cancelled;
-		//TODO maybe we can put it with timeout instead of 1 try
-    	if(equal<=(totalServerNumber + 1) / 2) {
-    		System.out.println("Equals values == "+equal);
-    		System.out.println("There are "+different+" values");
-			return false;
-		}
-    	return true;
+	    			if(broadcastMessageReady.get(i).readyServerReceived()>1&&
+	    					!broadcastMessageReady.get(i).serverReadied(myServerName)) { // broadcast ready in case >f
+	    				broadcastMessageReady.get(i).readyServer(myServerName);
+	    				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
+	    				tmp.readyServer(myServerName);
+	    				for (int j = 0; j < servers.size(); j++) {
+	    		    		if((j+1)==serverNumber) {
+	    		    			continue;
+	    		    		}
+	    		    		final int index=j;
+	    					service.execute(() -> {
+	    						try {
+	    			    			Message msg2=new Message(decipheredMessage.getMessage(), manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), tmp);
+	    		        			CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg2, serversPublicKey.get("server"+(index+1)));
+
+	    		    				servers.get(index).readyBroadcast(cipheredMessage);
+
+	    			            } catch (RemoteException e) {
+	    			                System.out.println("Connection fail...");
+	    			                System.out.println("Server[" + (index+1) + "] connection failed");
+	    			            } catch (Exception e) {
+	    							// TODO Auto-generated catch block
+	    							e.printStackTrace();
+	    						}
+	    					});
+	    				}
+    					continue;
+	    			}
+
+	    		}
+
+    	}
     }
 
-    /*TODO not necessary part1?
-    private boolean registerDelivery(FunctionRegister register) throws RemoteException{
-    	//Authenticated Double-Echo Broadcast page 118 Delievery
-
-    	final ConcurrentHashMap<String, FunctionRegister> acklist = new ConcurrentHashMap<>();
-    	int equal=0;
-    	int different=0;
-    	for (int i = 0; i < servers.size(); i++) {
-    		if((i+1)==serverNumber) {
-    			FunctionRegister registerReturn=sendEchoRegister(register);
-    			acklist.put(nameServer, registerReturn);
-    			continue;
-    		}
-    		final int index=i;
-    		service.execute(() -> {
-	    		try {
-
-	    			FunctionRegister registerReturn=servers.get(index).sendEchoRegister(register);
-	    			acklist.put("server"+(index+1), registerReturn);
-
-	            } catch (RemoteException e) {
-	                System.out.println("Connection fail...");
-	                System.out.println("Server[" + (index+1) + "] connection failed");
-	            }
-    		});
-    	}
-    	//Wait for values;
-    	while (!(acklist.keySet().size() > (totalServerNumber + 1) / 2)) { //(N+f)/2
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-        }
-		//Compare received Value;
-		for(int i=0; i<acklist.size();i++) {
-			if(acklist.get(nameServer).myEquals(acklist.get("server"+(i+1)))) {
-				equal++;
-			}else{
-				different++;
-			}
-
-	    }
-		//if there is no more than 5 equals value, then operation is cancelled;
-    	if(equal<=(totalServerNumber + 1) / 2) {
-    		System.out.println("Equals values == "+equal);
-    		System.out.println("There are "+different+" values");
-			return false;
-		}
-    	return true;
-    }
-    */
 
 
 
@@ -835,63 +702,10 @@ public class Server implements RemoteServerInterface {
 
 
 
-    
-    
-    
-    
-	//Authenticated Double-Echo Broadcast page 118 for register
-	@Override
-	public FunctionRegister sendEchoRegister(FunctionRegister register) throws RemoteException {
-	
-		
-		//this.sentEchoRegister=true;
-		if(registerEchoMessage.get(register.getServerOrigin())==null){
-    		ArrayList<FunctionRegister> tmpList=new ArrayList<FunctionRegister>();
-    		tmpList.add(register);
-    		registerEchoMessage.put(register.getServerOrigin(), tmpList);
-    	}else{
-    		ArrayList<FunctionRegister> tmpList=registerEchoMessage.get(register.getServerOrigin());
-    		if(!tmpList.contains(register)){
-    			tmpList.add(register);
-    			registerEchoMessage.put(register.getServerOrigin(), tmpList);
-    		}
-    	}
-		
-		ArrayList<FunctionRegister> tmpList=registerEchoMessage.get(nameServer);
-		if(tmpList!=null){
-			for(FunctionRegister reg:tmpList){
-				if(reg.myEquals(register)){
-					System.out.println(reg.getServerOrigin()+" comparing "+register.getServerOrigin());
-					return reg;
-				}
-			}
-		}
-		return null;
-	}
-	@Override
-	public ArrayList<FunctionRegister> sendReadyRegister(FunctionRegister register) throws RemoteException {
-		//this.sentReadyRegister=true;
-		if(registerReadyMessage.get(register.getServerOrigin())==null){
-    		ArrayList<FunctionRegister> tmpList=new ArrayList<FunctionRegister>();
-    		tmpList.add(register);
-    		registerReadyMessage.put(register.getServerOrigin(), tmpList);
-    	}else{
-    		ArrayList<FunctionRegister> tmpList=registerReadyMessage.get(register.getServerOrigin());
-			if(!tmpList.contains(register)){
-				tmpList.add(register);
-				registerReadyMessage.put(register.getServerOrigin(), tmpList);
-			}
-    	}
-		return registerReadyMessage.get(nameServer);
-	}
-	
-	//TODO not necessary part3?
-	@Override
-	public FunctionRegister sendDeliveryRegister(FunctionRegister register) throws RemoteException {
-		
-		//this.sentReadyRegister=true;
-		return register;
-	}
+
+
+
+
 	/*@Override
 	public void setByzantine(boolean mode) {
 		byzantine = mode;
