@@ -137,6 +137,12 @@ public class Client {
         }
         try {
 
+            if(test && testAttack==4) {
+                System.out.println("Setting timestamp to 0");
+                writeTimestamp = 0;
+            }
+
+
             final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
             final ConcurrentHashMap<String, Message> failedacklist = new ConcurrentHashMap<>();
             writeTimestamp++;
@@ -188,10 +194,7 @@ public class Client {
         final ConcurrentHashMap<String, CipheredMessage> readListCiphers = new ConcurrentHashMap<>();
         readID++;
         
-        if(test && testAttack==4) {
-        	readID=0;
-        }
-        
+
         try {
             Message msg = new Message(manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), readID);
             for (int i = 0; i < numServers(); i++) {
@@ -407,5 +410,23 @@ public class Client {
     /*public void setServerByzantine(boolean mode) {
     	servers.get(0).setByzantine(mode);
     }*/
+
+
+
+    public boolean decipherCaughtMsg(CipheredMessage msg){
+        Message responseDeciphered = manager.decipherCipheredMessage(msg);
+        if(responseDeciphered == null) return false;
+        return true;
+    }
+
+    public CipheredMessage createTestMsg(String to){
+        try {
+            Message msg = new Message(Double.parseDouble("1"), manager.getPublicKey(), keyPairManager.getPublicKeyByName(to), writeTimestamp);
+            return manager.makeCipheredMessage(msg, keyPairManager.getPublicKeyByName(to));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
 }

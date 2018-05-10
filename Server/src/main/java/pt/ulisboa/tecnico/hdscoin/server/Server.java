@@ -329,8 +329,6 @@ public class Server implements RemoteServerInterface {
 
 
 
-
-
         //TODO
         final BroadcastMessage checkBroadcast=new BroadcastMessage(manager.getDigitalSign(msg), totalServerNumber);
         //TODO Sheng

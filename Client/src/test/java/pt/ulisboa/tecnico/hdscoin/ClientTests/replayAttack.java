@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.hdscoin.ClientTests;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.net.MalformedURLException;
@@ -17,7 +18,7 @@ public class replayAttack {
 	static Client bob;
 	
 	@Test
-	public void spoofingAttack() {
+	public void replayAttack() {
 		try {
 			alice=new Client("localhost", "alice", "alice123",true,4);
 			assertTrue(alice.register());
@@ -31,7 +32,8 @@ public class replayAttack {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		assertTrue(alice.check("alice"));
-		assertTrue(alice.check("alice"));
+		assertFalse(alice.send("bob", "1"));
 	}
+
+
 }
