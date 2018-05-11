@@ -166,7 +166,13 @@ public class    Client {
 //                System.out.println("I didn't received publickey for all server");
 
             for (int i = 0; i < numServers(); i++) {
-            	final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server"+(i+1)));
+                final CipheredMessage cipheredMessage;
+                if(testAttack == 10) {
+                    msg = new Message(i, manager.getPublicKey(), keyPairManager.getPublicKeyByName(sendDestination), writeTimestamp); //SERVER_key represents sendDestination
+                    cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server" + (i + 1)));
+                } else {
+                    cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server" + (i + 1)));
+                }
                 final int index = i;
                 service.execute(() -> {
                             try {
