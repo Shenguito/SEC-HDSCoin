@@ -503,7 +503,7 @@ public class Server implements RemoteServerInterface {
 
 
 	//Message broadcast
-    public void echoBroadcast(CipheredMessage msg) throws RemoteException {
+    public synchronized void echoBroadcast(CipheredMessage msg) throws RemoteException {
     	Message decipheredMessage = manager.decipherCipheredMessage(msg);
     	BroadcastMessage bcm=decipheredMessage.getBcm();
     	//if there is no BroadcastMessage, then add and broadcast
@@ -517,6 +517,28 @@ public class Server implements RemoteServerInterface {
 					if(serversPublicKey.get(s).equals(decipheredMessage.getSender())){
 						tmp.echoServer(s);
 						broadcastMessage.add(tmp);
+//						for (int j = 0; j < servers.size(); j++) { in case it does not work
+//				    		if((j+1)==serverNumber) { // it does not self send, above 4 lines already did it
+//				    			continue;
+//				    		}
+//				    		final int index=j;
+//				    		service.execute(() -> {
+//					    		try {
+//					    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
+//					    			Message tmpmsg=new Message(decipheredMessage.getMessage(), manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), tmp);
+//				        			CipheredMessage cipheredMessage = manager.makeCipheredMessage(tmpmsg, manager.getPublicKeyBy("server"+(index+1)));
+//				        			//System.out.println("server"+(index+1)+"\n"+serversPublicKey.get("server"+(index+1)));
+//				    				servers.get(index).readyBroadcast(cipheredMessage);
+//
+//					            } catch (RemoteException e) {
+//					                System.out.println("Connection fail...");
+//					                System.out.println("Server[" + (index+1) + "] connection failed");
+//					            } catch (Exception e) {
+//									// TODO Auto-generated catch block
+//									e.printStackTrace();
+//								}
+//				    		});
+//				    	}
 						// here server won't never broadcast ready since it is first message
 					}
 
@@ -537,7 +559,7 @@ public class Server implements RemoteServerInterface {
 
 	    					//if this message broadcastMessageEcho.get(i).echoServerReceived()>(n+f) / 2;
 	    					//and if this server is really delivered message
-	    					if(broadcastMessage.get(i).echoServerReceived()>((totalServerNumber+1)/2)) {
+	    					if(broadcastMessage.get(i).echoServerReceived()>((totalServerNumber+byzantineServerNumber)/2)) {
 	    						//TODO readyself
 	    						//readySelf(broadcastMessage.get(i), requestMessageEcho.get(broadcastMessage.get(i).getStringDigitalsign()));
 	    						System.out.println("enter else4 "+myServerName+"\n"+manager.getPublicKey());
@@ -546,7 +568,7 @@ public class Server implements RemoteServerInterface {
 	    						BroadcastMessage checkbcm=broadcastMessage.get(i);
 
 	    						for (int j = 0; j < servers.size(); j++) {
-	    				    		if((i+1)==serverNumber) { // it does not self send, above 4 lines already did it
+	    				    		if((j+1)==serverNumber) { // it does not self send, above 4 lines already did it
 	    				    			continue;
 	    				    		}
 	    				    		final int index=j;
@@ -577,7 +599,7 @@ public class Server implements RemoteServerInterface {
     	}
 
     }
-    public void readyBroadcast(CipheredMessage msg) throws RemoteException {
+    public synchronized void readyBroadcast(CipheredMessage msg) throws RemoteException {
 
     	Message decipheredMessage = manager.decipherCipheredMessage(msg);
     	BroadcastMessage bcm=decipheredMessage.getBcm();
@@ -606,8 +628,10 @@ public class Server implements RemoteServerInterface {
 	    					broadcastMessage.get(i).readyServer(s);
 						}
 
+	    			System.out.println(myServerName+" has "+broadcastMessage.get(i).readyServerReceived()+" ready "+broadcastMessage.get(i).serverReadied(myServerName));
+	    			
 	    			// delivery in case >2f
-	    			if(broadcastMessage.get(i).readyServerReceived()>2&&
+	    			if(broadcastMessage.get(i).readyServerReceived()>(2*byzantineServerNumber)&&
 	    					broadcastMessage.get(i).serverReadied(myServerName)) {
 	    				if(broadcastMessageDelivery.size()==0) {
 	    					broadcastMessageDelivery.add(decipheredMessage);
@@ -626,7 +650,7 @@ public class Server implements RemoteServerInterface {
 	    				}
 
 	    			// broadcast ready in case >f
-	    			}else if(broadcastMessage.get(i).readyServerReceived()>1&&
+	    			}else if(broadcastMessage.get(i).readyServerReceived()>byzantineServerNumber&&
 	    					!broadcastMessage.get(i).serverReadied(myServerName)) {
 	    				broadcastMessage.get(i).readyServer(myServerName);
 	    				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);

@@ -13,6 +13,7 @@ import java.security.spec.InvalidKeySpecException;
 
 public class NoReplyServer extends Server{
 
+	private int noreplayAttack=99999999;
     public NoReplyServer(int number, int totalServer, int byzantineServerNumber) throws RemoteException, AlreadyBoundException, MalformedURLException, NotBoundException {
         super(number, totalServer, byzantineServerNumber);
     }
@@ -21,7 +22,7 @@ public class NoReplyServer extends Server{
     public CipheredMessage check(CipheredMessage msg) throws RemoteException {
         System.out.println("Byzantine received check");
         try {
-            Thread.sleep(99999999);
+            Thread.sleep(noreplayAttack);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -39,7 +40,7 @@ public class NoReplyServer extends Server{
         System.out.println("Byzantine received send");
 
         try {
-            Thread.sleep(99999999);
+            Thread.sleep(noreplayAttack);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -51,7 +52,7 @@ public class NoReplyServer extends Server{
         System.out.println("Byzantine received receive");
 
         try {
-            Thread.sleep(99999999);
+            Thread.sleep(noreplayAttack);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -63,7 +64,7 @@ public class NoReplyServer extends Server{
         System.out.println("Byzantine received msg");
 
         try {
-            Thread.sleep(99999999);
+            Thread.sleep(noreplayAttack);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

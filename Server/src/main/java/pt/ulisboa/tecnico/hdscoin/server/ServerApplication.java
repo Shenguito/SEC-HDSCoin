@@ -33,7 +33,10 @@ public class ServerApplication {
 			*/
 
 			System.out.println("Do you want any of these servers?");
-			System.out.println("1 - No Reply Server");
+			System.out.println("1 - 1 No Reply Server");
+			System.out.println("2 - 1 Delayed Server");
+			System.out.println("3 - 2 Delayed Servers");
+			System.out.println("any other input will process normally");
 			String input = reader.nextLine();
 
 
@@ -42,10 +45,28 @@ public class ServerApplication {
 			if(Integer.parseInt(input) == 1){
 				try {
 					servers[0] = new NoReplyServer(byzantineIndex+1, serversize, byzantineServerNumber);
+					byzantineIndex= 1;
 				} catch (MalformedURLException | NotBoundException e) {
 					e.printStackTrace();
 				}
 				byzantineIndex= 1;
+			}if(Integer.parseInt(input) == 2){
+				try {
+					servers[0] = new DelayedServer(byzantineIndex+1, serversize, byzantineServerNumber, 1);
+					byzantineIndex= 1;
+				} catch (MalformedURLException | NotBoundException e) {
+					e.printStackTrace();
+				}
+				byzantineIndex= 1;
+			}if(Integer.parseInt(input) == 3){
+				try {
+					servers[0] = new DelayedServer(byzantineIndex+1, serversize, byzantineServerNumber, 1);
+					servers[1] = new DelayedServer(byzantineIndex+1, serversize, byzantineServerNumber, 1);
+					byzantineIndex= 2;
+				} catch (MalformedURLException | NotBoundException e) {
+					e.printStackTrace();
+				}
+				
 			}
 			for(; byzantineIndex<servers.length; byzantineIndex++){
 				try {

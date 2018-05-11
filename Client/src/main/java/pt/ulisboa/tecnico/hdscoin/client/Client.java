@@ -121,6 +121,9 @@ public class    Client {
 
                 System.out.println("You are registered by server[" + (index+1) + "]");
 
+            } catch (NullPointerException e) {
+            	System.out.println("Request to server"+(index+1)+" return null");
+                return;
             } catch (UnmarshalException e) {
             	System.out.println("Request to server"+(index+1)+" Time out");
                 return;
@@ -182,6 +185,9 @@ public class    Client {
                                 if (responseDeciphered.isConfirm()) acklist.putIfAbsent("" + index, responseDeciphered);
                                 else failedacklist.putIfAbsent("" + index, responseDeciphered);
                                 System.out.println("Success from server " + (index + 1) + ": " + responseDeciphered.isConfirm());
+                            } catch (NullPointerException e) {
+                            	System.out.println("Request to server"+(index+1)+" return null");
+                                return;
                             } catch (UnmarshalException e) {
                             	System.out.println("Request to server"+(index+1)+" Time out");
                                 return;
@@ -262,6 +268,9 @@ public class    Client {
                                 transactions.put(index, pendingTransaction);
                         }
 
+                    } catch (NullPointerException e) {
+                    	System.out.println("Request to server"+(index+1)+" return null");
+                        return;
                     } catch (UnmarshalException e) {
                     	System.out.println("Request to server"+(index+1)+" Time out");
                         return;
@@ -329,7 +338,10 @@ public class    Client {
 		                    Message responseDeciphered = manager.decipherCipheredMessage(response);
 		                    System.out.println("Server was outdated? " + (index + 1) + ": " + responseDeciphered.isConfirm());
 		                    acklist.put("" + index, responseDeciphered);
-		                } catch (UnmarshalException e) {
+		                } catch (NullPointerException e) {
+	                    	System.out.println("Request to server"+(index+1)+" return null");
+	                        return;
+	                    } catch (UnmarshalException e) {
 	                    	System.out.println("Request to server"+(index+1)+" Time out");
 	                        return;
 	                    } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
@@ -403,6 +415,9 @@ public class    Client {
                         Message responseDeciphered = manager.decipherCipheredMessage(response);
                         if (responseDeciphered.isConfirm()) acklist.putIfAbsent("" + for_index, responseDeciphered);
                         System.out.println("Success from server " + (for_index + 1) + ": " + responseDeciphered.isConfirm());
+                    } catch (NullPointerException e) {
+                    	System.out.println("Request to server"+(index+1)+" return null");
+                        return;
                     } catch (UnmarshalException e) {
                     	System.out.println("Request to server"+(index+1)+" Time out");
                         return;
@@ -453,6 +468,9 @@ public class    Client {
                                 transactions.put(index, responseDeciphered.getTransactions());
                             }
                         }
+                    } catch (NullPointerException e) {
+                    	System.out.println("Request to server"+(index+1)+" return null");
+                        return;
                     } catch (UnmarshalException e) {
                     	System.out.println("Request to server"+(index+1)+" Time out");
                         return;
