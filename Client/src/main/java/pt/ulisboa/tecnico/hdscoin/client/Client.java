@@ -3,12 +3,16 @@ package pt.ulisboa.tecnico.hdscoin.client;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.UnmarshalException;
 import java.rmi.registry.LocateRegistry;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -28,8 +32,9 @@ import javax.crypto.NoSuchPaddingException;
 
 
 public class    Client {
-
-
+	private int timeout=15000;
+	
+	private String connectionTimeout=String.valueOf(timeout);
     private List<Transaction> pendingTransaction;
     private static int F = 1;
     private CryptoManager manager;
@@ -58,7 +63,8 @@ public class    Client {
     private String host;
 
     public Client(String host, String clientName, String password, boolean testMode, int testAttack) throws RemoteException, NotBoundException, MalformedURLException {
-        this.host = host;
+    	System.setProperty("sun.rmi.transport.tcp.responseTimeout", connectionTimeout);
+    	this.host = host;
         this.clientName = clientName.toLowerCase().trim();
         this.test=testMode;
         this.testAttack=testAttack;
@@ -115,9 +121,13 @@ public class    Client {
 
                 System.out.println("You are registered by server[" + (index+1) + "]");
 
+            } catch (UnmarshalException e) {
+            	System.out.println("Request to server"+(index+1)+" Time out");
+                return;
             } catch (RemoteException e) {
                 System.out.println("Connection fail...");
                 System.out.println("Server[" + (index+1) + "] connection failed");
+                return;
             } catch(Exception e1){
                 e1.printStackTrace();
             	System.out.println("Exception1: "+e1);
@@ -166,9 +176,12 @@ public class    Client {
                                 if (responseDeciphered.isConfirm()) acklist.putIfAbsent("" + index, responseDeciphered);
                                 else failedacklist.putIfAbsent("" + index, responseDeciphered);
                                 System.out.println("Success from server " + (index + 1) + ": " + responseDeciphered.isConfirm());
+                            } catch (UnmarshalException e) {
+                            	System.out.println("Request to server"+(index+1)+" Time out");
+                                return;
                             } catch (RemoteException e) {
                                 System.out.println("Connection fail...");
-
+                                return;
                             } catch (IllegalStateException e) {
                                 System.out.println("Invalid signature");
 
@@ -176,7 +189,12 @@ public class    Client {
                         }
                 );
             }
+            Instant start = Instant.now();
             while (!(acklist.keySet().size() > (numServers() + F) / 2) && !(failedacklist.keySet().size() > (numServers() + F) / 2)) {
+            	Instant end = Instant.now();
+            	if(Duration.between(start, end).toMillis()>timeout) {
+            		return false;
+            	}
             }
             if(acklist.keySet().size() > (numServers() + F) / 2) {
                 System.out.println("SUCCESS");
@@ -238,11 +256,13 @@ public class    Client {
                                 transactions.put(index, pendingTransaction);
                         }
 
+                    } catch (UnmarshalException e) {
+                    	System.out.println("Request to server"+(index+1)+" Time out");
+                        return;
                     } catch (RemoteException e) {
                         //TODO fix connection bug
                         System.out.println("Connection fail...");
-                        e.printStackTrace();
-
+                        return;
                     } catch (IllegalStateException e) {
                         System.out.println("Invalid signature");
                   
@@ -254,7 +274,12 @@ public class    Client {
 
 
             }
+            Instant start = Instant.now();
             while (!(readList.keySet().size() > (numServers() + F) / 2)) {
+            	Instant end = Instant.now();
+            	if(Duration.between(start, end).toMillis()>timeout) {
+            		return false;
+            	}
             }
             return enforceCheck(checkedName, readList, readListCiphers, msg, false);
         } catch (Exception e) {
@@ -298,7 +323,10 @@ public class    Client {
 		                    Message responseDeciphered = manager.decipherCipheredMessage(response);
 		                    System.out.println("Server was outdated? " + (index + 1) + ": " + responseDeciphered.isConfirm());
 		                    acklist.put("" + index, responseDeciphered);
-		                } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
+		                } catch (UnmarshalException e) {
+	                    	System.out.println("Request to server"+(index+1)+" Time out");
+	                        return;
+	                    } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
 		                    e.printStackTrace();
 		                }
 		            });
@@ -309,7 +337,12 @@ public class    Client {
 	        }
 	        //not necessary... since you obtained always a response by RMI
 	        //if you don't get a response by server you get a exception.
+	        Instant start = Instant.now();
 	        while (!(acklist.keySet().size() > (numServers() + F) / 2)) {
+	        	Instant end = Instant.now();
+            	if(Duration.between(start, end).toMillis()>timeout) {
+            		return false;
+            	}
 	        }
         }
         if (!isAudit) {
@@ -364,15 +397,24 @@ public class    Client {
                         Message responseDeciphered = manager.decipherCipheredMessage(response);
                         if (responseDeciphered.isConfirm()) acklist.putIfAbsent("" + for_index, responseDeciphered);
                         System.out.println("Success from server " + (for_index + 1) + ": " + responseDeciphered.isConfirm());
+                    } catch (UnmarshalException e) {
+                    	System.out.println("Request to server"+(index+1)+" Time out");
+                        return;
                     } catch (RemoteException e) {
                         System.out.println("Connection fail...");
+                        return;
                     } catch (IllegalStateException e) {
                         System.out.println("Illegal State Exception Invalid signature");
 
                     }
                 });
             }
+            Instant start = Instant.now();
             while (!(acklist.keySet().size() > (numServers() + F) / 2)) {
+            	Instant end = Instant.now();
+            	if(Duration.between(start, end).toMillis()>timeout) {
+            		return false;
+            	}
             }
             System.out.println("SUCCESS");
             return true;
@@ -405,9 +447,11 @@ public class    Client {
                                 transactions.put(index, responseDeciphered.getTransactions());
                             }
                         }
+                    } catch (UnmarshalException e) {
+                    	System.out.println("Request to server"+(index+1)+" Time out");
+                        return;
                     } catch (RemoteException e) {
                         System.out.println("Connection fail...");
-
                     } catch (IllegalStateException e) {
                         System.out.println("Invalid signature");
 
@@ -416,8 +460,12 @@ public class    Client {
                     }
                 });
             }
-
+            Instant start = Instant.now();
             while (!(readList.keySet().size() > (numServers() + F) / 2)) {
+            	Instant end = Instant.now();
+            	if(Duration.between(start, end).toMillis()>timeout) {
+            		return false;
+            	}
             }
             enforceCheck(name, readList, readListCiphers, msg, true);
 

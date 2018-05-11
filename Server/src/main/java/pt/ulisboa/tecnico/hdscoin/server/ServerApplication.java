@@ -19,6 +19,7 @@ public class ServerApplication {
 		
 		try {
 			int serversize = 4;
+			int byzantineServerNumber=1;
 			
 			Scanner reader = new Scanner(System.in);
 			/*
@@ -40,7 +41,7 @@ public class ServerApplication {
 			int byzantineIndex = 0;
 			if(Integer.parseInt(input) == 1){
 				try {
-					servers[0] = new NoReplyServer(byzantineIndex+1, serversize);
+					servers[0] = new NoReplyServer(byzantineIndex+1, serversize, byzantineServerNumber);
 				} catch (MalformedURLException | NotBoundException e) {
 					e.printStackTrace();
 				}
@@ -49,7 +50,7 @@ public class ServerApplication {
 			for(; byzantineIndex<servers.length; byzantineIndex++){
 				try {
 					System.out.println("ABC");
-					servers[byzantineIndex]=new Server(byzantineIndex+1, serversize);
+					servers[byzantineIndex]=new Server(byzantineIndex+1, serversize, byzantineServerNumber);
 				} catch (MalformedURLException | NotBoundException e) {
 					
 					e.printStackTrace();

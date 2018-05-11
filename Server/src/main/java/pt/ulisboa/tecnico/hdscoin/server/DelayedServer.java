@@ -1,7 +1,5 @@
 package pt.ulisboa.tecnico.hdscoin.server;
 
-import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.AlreadyBoundException;
@@ -11,17 +9,21 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 
-public class NoReplyServer extends Server{
+import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 
-    public NoReplyServer(int number, int totalServer, int byzantineServerNumber) throws RemoteException, AlreadyBoundException, MalformedURLException, NotBoundException {
+public class DelayedServer extends Server{
+
+	private int delay;
+	public DelayedServer(int number, int totalServer, int byzantineServerNumber, int delay) throws RemoteException, AlreadyBoundException, MalformedURLException, NotBoundException {
         super(number, totalServer, byzantineServerNumber);
+        this.delay=delay*1000;
     }
 
     @Override
     public CipheredMessage check(CipheredMessage msg) throws RemoteException {
         System.out.println("Byzantine received check");
         try {
-            Thread.sleep(99999999);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -39,7 +41,7 @@ public class NoReplyServer extends Server{
         System.out.println("Byzantine received send");
 
         try {
-            Thread.sleep(99999999);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -51,7 +53,7 @@ public class NoReplyServer extends Server{
         System.out.println("Byzantine received receive");
 
         try {
-            Thread.sleep(99999999);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -63,7 +65,7 @@ public class NoReplyServer extends Server{
         System.out.println("Byzantine received msg");
 
         try {
-            Thread.sleep(99999999);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

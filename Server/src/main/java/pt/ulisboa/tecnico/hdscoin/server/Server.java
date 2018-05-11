@@ -78,6 +78,7 @@ public class Server implements RemoteServerInterface {
     private String myServerName;
     private int serverNumber;
     private int totalServerNumber;
+    private int byzantineServerNumber;
     private int taskCounter;
     private boolean byzantine=false;
     
@@ -92,10 +93,11 @@ public class Server implements RemoteServerInterface {
 
     private ConcurrentHashMap<PublicKey, String> clients;
 
-    public Server(int number, int totalServer) throws RemoteException, AlreadyBoundException, MalformedURLException, NotBoundException {
+    public Server(int number, int totalServer, int byzantineServerNumber) throws RemoteException, AlreadyBoundException, MalformedURLException, NotBoundException {
     	myServerName = "server" + number;
     	serverNumber=number;
     	totalServerNumber=totalServer;
+    	byzantineServerNumber=byzantineServerNumber;
     	servers = new ArrayList<RemoteServerInterface>();
     	serversPublicKey = new HashMap<String, PublicKey>();
         storage = new Storage(myServerName);

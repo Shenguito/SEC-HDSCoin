@@ -53,7 +53,7 @@ public class ByzantineServer {
 	public void noReplyAttack() {
 		try {
  			alice=new Client("localhost", "alice", "alice123",false,0);
-			NoReplyServer sv = new NoReplyServer(1, 4);
+			NoReplyServer sv = new NoReplyServer(1, 4, 1);
 			alice.setByzantineServer(0, sv);
  			assertTrue(alice.register());
  			
