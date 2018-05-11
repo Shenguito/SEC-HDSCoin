@@ -27,7 +27,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 
-public class Client {
+public class    Client {
 
 
     private List<Transaction> pendingTransaction;
