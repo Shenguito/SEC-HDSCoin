@@ -245,6 +245,7 @@ public class Client {
 
                     } catch (IllegalStateException e) {
                         System.out.println("Invalid signature");
+                  
 
                     } catch (Exception e1) {
                         e1.printStackTrace();
@@ -265,43 +266,51 @@ public class Client {
 
     private boolean enforceCheck(StringBuilder checkedName, ConcurrentHashMap<String, Message> readList, ConcurrentHashMap<String, CipheredMessage> readListCiphers, Message msg, boolean isAudit) {
         System.out.println("Enforcing Read");
+        boolean allSame = true;
         String highestValKey = readList.entrySet().stream().max(Comparator.comparing(x -> x.getValue().getTimestamp())).get().getKey();
         Message highestVal = readList.get(highestValKey);
         CipheredMessage highestValCipher = readListCiphers.get(highestValKey);
         if(highestVal.getCheckedName().equals("")) return false;
         if(highestVal.getCheckedName().equals(clientName)) writeTimestamp = highestVal.getTimestamp();
-        final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
-        Message newMsg = null;
-        try {
-            newMsg = new Message(clientKeyPair.getPublic(), highestVal, highestVal.getSender(), checkedName.toString(), isAudit, manager.decipherIntegrityCheck(highestValCipher), highestValCipher.getIV());
-        } catch (Exception e) {
-            e.printStackTrace();
+        Collection<Message> values = readList.values();
+        for(Message m : values) {
+        	if(m.getTimestamp()!=highestVal.getTimestamp())
+        		allSame=false;
         }
-        for (int i = 0; i < numServers(); i++) {
-        	CipheredMessage newCipheredMessage;
-			try {
-				newCipheredMessage = manager.makeCipheredMessage(newMsg, manager.getPublicKeyBy("server"+(i+1)));
-
-	            final int index = i;
-	            service.execute(() ->
-	            {
-	                try {
-	                    CipheredMessage response = servers.get(index).clientHasRead(newCipheredMessage);
-	                    Message responseDeciphered = manager.decipherCipheredMessage(response);
-	                    System.out.println("Server was outdated? " + (index + 1) + ": " + responseDeciphered.isConfirm());
-	                    acklist.put("" + index, responseDeciphered);
-	                } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
-	                    e.printStackTrace();
-	                }
-	            });
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-        }
-        //not necessary... since you obtained always a response by RMI
-        //if you don't get a response by server you get a exception.
-        while (!(acklist.keySet().size() > (numServers() + F) / 2)) {
+        if(!allSame) {
+	        final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
+	        Message newMsg = null;
+	        try {
+	            newMsg = new Message(clientKeyPair.getPublic(), highestVal, highestVal.getSender(), checkedName.toString(), isAudit, manager.decipherIntegrityCheck(highestValCipher), highestValCipher.getIV());
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
+	        for (int i = 0; i < numServers(); i++) {
+	        	CipheredMessage newCipheredMessage;
+				try {
+					newCipheredMessage = manager.makeCipheredMessage(newMsg, manager.getPublicKeyBy("server"+(i+1)));
+	
+		            final int index = i;
+		            service.execute(() ->
+		            {
+		                try {
+		                    CipheredMessage response = servers.get(index).clientHasRead(newCipheredMessage);
+		                    Message responseDeciphered = manager.decipherCipheredMessage(response);
+		                    System.out.println("Server was outdated? " + (index + 1) + ": " + responseDeciphered.isConfirm());
+		                    acklist.put("" + index, responseDeciphered);
+		                } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
+		                    e.printStackTrace();
+		                }
+		            });
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+	        }
+	        //not necessary... since you obtained always a response by RMI
+	        //if you don't get a response by server you get a exception.
+	        while (!(acklist.keySet().size() > (numServers() + F) / 2)) {
+	        }
         }
         if (!isAudit) {
             System.out.println(checkedName + "'s balance is: " + highestVal.getAmount());
