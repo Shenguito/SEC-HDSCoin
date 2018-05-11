@@ -167,4 +167,8 @@ public class Message implements Serializable{
     public long getTimestamp() {
         return timestamp;
     }
+	public void setTimeStamp(long l) {
+		timestamp=l;
+		
+	}
 }

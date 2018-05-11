@@ -121,9 +121,6 @@ public class    Client {
 
                 System.out.println("You are registered by server[" + (index+1) + "]");
 
-            } catch (NullPointerException e) {
-            	System.out.println("Request to server"+(index+1)+" return null");
-                return;
             } catch (UnmarshalException e) {
             	System.out.println("Request to server"+(index+1)+" Time out");
                 return;
@@ -185,9 +182,6 @@ public class    Client {
                                 if (responseDeciphered.isConfirm()) acklist.putIfAbsent("" + index, responseDeciphered);
                                 else failedacklist.putIfAbsent("" + index, responseDeciphered);
                                 System.out.println("Success from server " + (index + 1) + ": " + responseDeciphered.isConfirm());
-                            } catch (NullPointerException e) {
-                            	System.out.println("Request to server"+(index+1)+" return null");
-                                return;
                             } catch (UnmarshalException e) {
                             	System.out.println("Request to server"+(index+1)+" Time out");
                                 return;
@@ -268,9 +262,6 @@ public class    Client {
                                 transactions.put(index, pendingTransaction);
                         }
 
-                    } catch (NullPointerException e) {
-                    	System.out.println("Request to server"+(index+1)+" return null");
-                        return;
                     } catch (UnmarshalException e) {
                     	System.out.println("Request to server"+(index+1)+" Time out");
                         return;
@@ -306,63 +297,54 @@ public class    Client {
 
     private boolean enforceCheck(StringBuilder checkedName, ConcurrentHashMap<String, Message> readList, ConcurrentHashMap<String, CipheredMessage> readListCiphers, Message msg, boolean isAudit) {
         System.out.println("Enforcing Read");
-        boolean allSame = true;
         String highestValKey = readList.entrySet().stream().max(Comparator.comparing(x -> x.getValue().getTimestamp())).get().getKey();
         Message highestVal = readList.get(highestValKey);
         CipheredMessage highestValCipher = readListCiphers.get(highestValKey);
         if(highestVal.getCheckedName().equals("")) return false;
         if(highestVal.getCheckedName().equals(clientName)) writeTimestamp = highestVal.getTimestamp();
         Collection<Message> values = readList.values();
-        for(Message m : values) {
-        	if(m.getTimestamp()!=highestVal.getTimestamp())
-        		allSame=false;
+        final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
+        Message newMsg = null;
+        try {
+            newMsg = new Message(clientKeyPair.getPublic(), highestVal, highestVal.getSender(), checkedName.toString(), isAudit, manager.decipherIntegrityCheck(highestValCipher), highestValCipher.getIV());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        if(!allSame) {
-	        final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
-	        Message newMsg = null;
-	        try {
-	            newMsg = new Message(clientKeyPair.getPublic(), highestVal, highestVal.getSender(), checkedName.toString(), isAudit, manager.decipherIntegrityCheck(highestValCipher), highestValCipher.getIV());
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	        }
-	        for (int i = 0; i < numServers(); i++) {
-	        	CipheredMessage newCipheredMessage;
-				try {
-					newCipheredMessage = manager.makeCipheredMessage(newMsg, manager.getPublicKeyBy("server"+(i+1)));
-	
-		            final int index = i;
-		            service.execute(() ->
-		            {
-		                try {
-		                    CipheredMessage response = servers.get(index).clientHasRead(newCipheredMessage);
-		                    Message responseDeciphered = manager.decipherCipheredMessage(response);
-		                    System.out.println("Server was outdated? " + (index + 1) + ": " + responseDeciphered.isConfirm());
-		                    acklist.put("" + index, responseDeciphered);
-		                } catch (NullPointerException e) {
-	                    	System.out.println("Request to server"+(index+1)+" return null");
-	                        return;
-	                    } catch (UnmarshalException e) {
-	                    	System.out.println("Request to server"+(index+1)+" Time out");
-	                        return;
-	                    } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
-		                    e.printStackTrace();
-		                }
-		            });
-				} catch (Exception e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-	        }
-	        //not necessary... since you obtained always a response by RMI
-	        //if you don't get a response by server you get a exception.
-	        Instant start = Instant.now();
-	        while (!(acklist.keySet().size() > (numServers() + F) / 2)) {
-	        	Instant end = Instant.now();
-            	if(Duration.between(start, end).toMillis()>timeout) {
-            		return false;
-            	}
-	        }
+        for (int i = 0; i < numServers(); i++) {
+        	CipheredMessage newCipheredMessage;
+			try {
+				newCipheredMessage = manager.makeCipheredMessage(newMsg, manager.getPublicKeyBy("server"+(i+1)));
+
+	            final int index = i;
+	            service.execute(() ->
+	            {
+	                try {
+	                    CipheredMessage response = servers.get(index).clientHasRead(newCipheredMessage);
+	                    Message responseDeciphered = manager.decipherCipheredMessage(response);
+	                    System.out.println("Server was outdated? " + (index + 1) + ": " + responseDeciphered.isConfirm());
+	                    acklist.put("" + index, responseDeciphered);
+	                } catch (UnmarshalException e) {
+                    	System.out.println("Request to server"+(index+1)+" Time out");
+                        return;
+                    } catch (ClassNotFoundException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | IOException | NoSuchPaddingException | IllegalBlockSizeException e) {
+	                    e.printStackTrace();
+	                }
+	            });
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
         }
+        //not necessary... since you obtained always a response by RMI
+        //if you don't get a response by server you get a exception.
+        Instant start = Instant.now();
+        while (!(acklist.keySet().size() > (numServers() + F) / 2)) {
+        	Instant end = Instant.now();
+        	if(Duration.between(start, end).toMillis()>timeout) {
+        		return false;
+        	}
+        }
+        
         if (!isAudit) {
             System.out.println(checkedName + "'s balance is: " + highestVal.getAmount());
             if (pendingTransaction.size() == 0 && clientName.equals(checkedName))
@@ -415,9 +397,6 @@ public class    Client {
                         Message responseDeciphered = manager.decipherCipheredMessage(response);
                         if (responseDeciphered.isConfirm()) acklist.putIfAbsent("" + for_index, responseDeciphered);
                         System.out.println("Success from server " + (for_index + 1) + ": " + responseDeciphered.isConfirm());
-                    } catch (NullPointerException e) {
-                    	System.out.println("Request to server"+(index+1)+" return null");
-                        return;
                     } catch (UnmarshalException e) {
                     	System.out.println("Request to server"+(index+1)+" Time out");
                         return;
@@ -468,9 +447,6 @@ public class    Client {
                                 transactions.put(index, responseDeciphered.getTransactions());
                             }
                         }
-                    } catch (NullPointerException e) {
-                    	System.out.println("Request to server"+(index+1)+" return null");
-                        return;
                     } catch (UnmarshalException e) {
                     	System.out.println("Request to server"+(index+1)+" Time out");
                         return;
@@ -533,9 +509,9 @@ public class    Client {
         return null;
     }
 
-    public void setServerByzantine(boolean mode) {
+    public void setServerByzantine(boolean mode, int attack) {
     	try {
-			servers.get(1).setByzantine(mode);
+			servers.get(1).setByzantine(mode, attack);
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

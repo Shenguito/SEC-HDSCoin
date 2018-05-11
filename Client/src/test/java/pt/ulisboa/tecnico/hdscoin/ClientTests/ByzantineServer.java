@@ -32,7 +32,7 @@ public class ByzantineServer {
 		try {
 			alice=new Client("localhost", "alice", "alice123",false,0);
 			assertTrue(alice.register());
-			alice.setServerByzantine(true);
+			alice.setServerByzantine(true,1);
 			
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
@@ -46,7 +46,7 @@ public class ByzantineServer {
 		}
 		assertTrue(alice.check("alice"));
 		assertTrue(alice.send("bob", "5"));
-		alice.setServerByzantine(false);
+		alice.setServerByzantine(false,0);
 		
 	}
 	@Test

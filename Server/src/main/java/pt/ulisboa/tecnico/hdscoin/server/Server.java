@@ -81,10 +81,12 @@ public class Server implements RemoteServerInterface {
     private int byzantineServerNumber;
     private int taskCounter;
     private boolean byzantine=false;
+    private int attack=0;
     
     private List<RemoteServerInterface> servers;
 
     private HashMap<String, PublicKey> serversPublicKey;
+    private List<Long> timeStampHistory;
     
     private boolean crashFailure;
 
@@ -102,6 +104,7 @@ public class Server implements RemoteServerInterface {
     	serversPublicKey = new HashMap<String, PublicKey>();
         storage = new Storage(myServerName);
         taskCounter = 0;
+        timeStampHistory = new ArrayList<Long>();
         backupFileCheck();
         connect(number);
         try {
@@ -224,6 +227,7 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
+        timeStampHistory.add(decipheredMessage.getTimestamp());
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
 
 
@@ -249,7 +253,7 @@ public class Server implements RemoteServerInterface {
                         e.printStackTrace();
                     }
                     System.out.println(serverNumber + " is byzantine:    " + byzantine);
-                    if(!byzantine)
+                    if(!byzantine && attack!=1)
                     	message = new Message(serverKeyPair.getPublic(), true, sender.getLastWriteTimestamp());
                 }
             } else System.out.println("Message out of date - MSG: " + decipheredMessage.getTimestamp() + " TIME: " + sender.getLastWriteTimestamp());
@@ -273,6 +277,7 @@ public class Server implements RemoteServerInterface {
 
 
         //Broadcast
+        timeStampHistory.add(decipheredMessage.getTimestamp());
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
 
 
@@ -287,6 +292,8 @@ public class Server implements RemoteServerInterface {
             else //NOT GOOD
                 message = new Message(manager.getPublicKey(), value.getBalance(), null,  decipheredMessage.getDestination(), clients.get(decipheredMessage.getDestination()), value.getLastWriteTimestamp());
         }
+        if(byzantine && attack==2)
+        	message.setTimeStamp(message.getTimestamp()+100);
         CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
         System.out.println("Deliveried");
         return cipheredMessage;
@@ -303,6 +310,7 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
+        timeStampHistory.add(decipheredMessage.getTimestamp());
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
 
 
@@ -362,6 +370,7 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
+        timeStampHistory.add(decipheredMessage.getTimestamp());
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
 
 
@@ -391,22 +400,27 @@ public class Server implements RemoteServerInterface {
         //verify here if n+f/2 have toBeUpdated.getLastWriteTimestamp() as last time stamp to avoid wrong timestamp from client?
         if(verified) {
             if (toBeUpdated.getLastWriteTimestamp() < innerMessage.getTimestamp()) {
-                if (innerMessage.getTransactions() != null) {
-                    if (decipheredMessage.isAudit())
-                        toBeUpdated.setPendingTransfers(innerMessage.getTransactions());
-                    else
-                        toBeUpdated.setTransfers(innerMessage.getTransactions());
-                }
-                toBeUpdated.setBalance(innerMessage.getAmount());
-                toBeUpdated.setLastWriteTimestamp(innerMessage.getTimestamp());
-                try {
-                    storage.writeClient(clients.get(innerMessage.getCheckedKey()), toBeUpdated);
-                    storage.writeClientBackup(clients.get(innerMessage.getCheckedKey()), toBeUpdated);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                message = new Message(serverKeyPair.getPublic(), true, toBeUpdated.getLastWriteTimestamp());
+            	if(timeStampHistory.contains(innerMessage.getTimestamp())) {
+            		System.out.println("valid update");
+	                if (innerMessage.getTransactions() != null) {
+	                    if (decipheredMessage.isAudit())
+	                        toBeUpdated.setPendingTransfers(innerMessage.getTransactions());
+	                    else
+	                        toBeUpdated.setTransfers(innerMessage.getTransactions());
+	                }
+	                toBeUpdated.setBalance(innerMessage.getAmount());
+	                toBeUpdated.setLastWriteTimestamp(innerMessage.getTimestamp());
+	                try {
+	                    storage.writeClient(clients.get(innerMessage.getCheckedKey()), toBeUpdated);
+	                    storage.writeClientBackup(clients.get(innerMessage.getCheckedKey()), toBeUpdated);
+	                } catch (IOException e) {
+	                    e.printStackTrace();
+	                }
+	
+	                message = new Message(serverKeyPair.getPublic(), true, toBeUpdated.getLastWriteTimestamp());
+            	}
+            	else
+            		System.out.println("invalid update");
             }
         }
         CipheredMessage cipheredMessage = manager.makeCipheredMessage(message, decipheredMessage.getSender());
@@ -503,7 +517,7 @@ public class Server implements RemoteServerInterface {
 
 
 	//Message broadcast
-    public synchronized void echoBroadcast(CipheredMessage msg) throws RemoteException {
+    public void echoBroadcast(CipheredMessage msg) throws RemoteException {
     	Message decipheredMessage = manager.decipherCipheredMessage(msg);
     	BroadcastMessage bcm=decipheredMessage.getBcm();
     	//if there is no BroadcastMessage, then add and broadcast
@@ -517,28 +531,6 @@ public class Server implements RemoteServerInterface {
 					if(serversPublicKey.get(s).equals(decipheredMessage.getSender())){
 						tmp.echoServer(s);
 						broadcastMessage.add(tmp);
-//						for (int j = 0; j < servers.size(); j++) { in case it does not work
-//				    		if((j+1)==serverNumber) { // it does not self send, above 4 lines already did it
-//				    			continue;
-//				    		}
-//				    		final int index=j;
-//				    		service.execute(() -> {
-//					    		try {
-//					    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
-//					    			Message tmpmsg=new Message(decipheredMessage.getMessage(), manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), tmp);
-//				        			CipheredMessage cipheredMessage = manager.makeCipheredMessage(tmpmsg, manager.getPublicKeyBy("server"+(index+1)));
-//				        			//System.out.println("server"+(index+1)+"\n"+serversPublicKey.get("server"+(index+1)));
-//				    				servers.get(index).readyBroadcast(cipheredMessage);
-//
-//					            } catch (RemoteException e) {
-//					                System.out.println("Connection fail...");
-//					                System.out.println("Server[" + (index+1) + "] connection failed");
-//					            } catch (Exception e) {
-//									// TODO Auto-generated catch block
-//									e.printStackTrace();
-//								}
-//				    		});
-//				    	}
 						// here server won't never broadcast ready since it is first message
 					}
 
@@ -559,7 +551,7 @@ public class Server implements RemoteServerInterface {
 
 	    					//if this message broadcastMessageEcho.get(i).echoServerReceived()>(n+f) / 2;
 	    					//and if this server is really delivered message
-	    					if(broadcastMessage.get(i).echoServerReceived()>((totalServerNumber+byzantineServerNumber)/2)) {
+	    					if(broadcastMessage.get(i).echoServerReceived()>((totalServerNumber+1)/2)) {
 	    						//TODO readyself
 	    						//readySelf(broadcastMessage.get(i), requestMessageEcho.get(broadcastMessage.get(i).getStringDigitalsign()));
 	    						System.out.println("enter else4 "+myServerName+"\n"+manager.getPublicKey());
@@ -568,7 +560,7 @@ public class Server implements RemoteServerInterface {
 	    						BroadcastMessage checkbcm=broadcastMessage.get(i);
 
 	    						for (int j = 0; j < servers.size(); j++) {
-	    				    		if((j+1)==serverNumber) { // it does not self send, above 4 lines already did it
+	    				    		if((i+1)==serverNumber) { // it does not self send, above 4 lines already did it
 	    				    			continue;
 	    				    		}
 	    				    		final int index=j;
@@ -599,7 +591,7 @@ public class Server implements RemoteServerInterface {
     	}
 
     }
-    public synchronized void readyBroadcast(CipheredMessage msg) throws RemoteException {
+    public void readyBroadcast(CipheredMessage msg) throws RemoteException {
 
     	Message decipheredMessage = manager.decipherCipheredMessage(msg);
     	BroadcastMessage bcm=decipheredMessage.getBcm();
@@ -628,10 +620,8 @@ public class Server implements RemoteServerInterface {
 	    					broadcastMessage.get(i).readyServer(s);
 						}
 
-	    			System.out.println(myServerName+" has "+broadcastMessage.get(i).readyServerReceived()+" ready "+broadcastMessage.get(i).serverReadied(myServerName));
-	    			
 	    			// delivery in case >2f
-	    			if(broadcastMessage.get(i).readyServerReceived()>(2*byzantineServerNumber)&&
+	    			if(broadcastMessage.get(i).readyServerReceived()>2&&
 	    					broadcastMessage.get(i).serverReadied(myServerName)) {
 	    				if(broadcastMessageDelivery.size()==0) {
 	    					broadcastMessageDelivery.add(decipheredMessage);
@@ -650,7 +640,7 @@ public class Server implements RemoteServerInterface {
 	    				}
 
 	    			// broadcast ready in case >f
-	    			}else if(broadcastMessage.get(i).readyServerReceived()>byzantineServerNumber&&
+	    			}else if(broadcastMessage.get(i).readyServerReceived()>1&&
 	    					!broadcastMessage.get(i).serverReadied(myServerName)) {
 	    				broadcastMessage.get(i).readyServer(myServerName);
 	    				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
@@ -683,8 +673,9 @@ public class Server implements RemoteServerInterface {
     	}
     }
 
-	public void setByzantine(boolean mode) {
+	public void setByzantine(boolean mode, int i) {
 		byzantine = mode;
+		attack =i;
 		
 	}
     
