@@ -30,6 +30,6 @@ public interface RemoteServerInterface extends Remote{
 	//Authenticated Double-Echo Broadcast page 118 for register
     void echoBroadcast(CipheredMessage msg) throws RemoteException;
     void readyBroadcast(CipheredMessage msg) throws RemoteException;
-	//void setByzantine(boolean mode) throws RemoteException;
+	void setByzantine(boolean mode) throws RemoteException;
     
 }
