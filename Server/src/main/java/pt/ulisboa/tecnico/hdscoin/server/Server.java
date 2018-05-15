@@ -455,7 +455,7 @@ public class Server implements RemoteServerInterface {
     
 
 
-    //Broadcast echo and ready
+  //Broadcast echo and ready
 
     private void broadcastEcho(IntegrityCheck integrityCheck, Message msg) {
         final BroadcastMessage checkBroadcast=new BroadcastMessage(integrityCheck, totalServerNumber);
@@ -511,6 +511,35 @@ public class Server implements RemoteServerInterface {
 					}
 	    		});
 	    	}
+    	}else{
+    		for(int j=0;j<broadcastMessage.size();j++){
+	    		if(checkEchoBroadcast.getStringDigitalsign().equals(broadcastMessage.get(j).getStringDigitalsign())) {
+	    			broadcastMessage.get(j).echoServer(myServerName);
+	    			BroadcastMessage bcm=broadcastMessage.get(j);
+	    			for (int i = 0; i < servers.size(); i++) {
+	    	    		if((i+1)==serverNumber) { // it does not self send, above 4 lines already did it
+	    	    			continue;
+	    	    		}
+	    	    		final int index=i;
+	    	    		service.execute(() -> {
+	    		    		try {
+	    		    			//serversPublicKey.get("server"+(index))==serversPublicKey.get("server"+(index)) --> printed
+	    		    			Message msg=new Message(message, manager.getPublicKey(), manager.getPublicKeyBy("server"+(index+1)), bcm);
+	    	        			final CipheredMessage cipheredMessage = manager.makeCipheredMessage(msg, manager.getPublicKeyBy("server"+(index+1)));
+
+	    	    				servers.get(index).echoBroadcast(cipheredMessage);
+
+	    		            } catch (RemoteException e) {
+	    		                System.out.println("Connection fail...");
+	    		                System.out.println("Server[" + (index+1) + "] connection failed");
+	    		            } catch (Exception e) {
+	    						// TODO Auto-generated catch block
+	    						e.printStackTrace();
+	    					}
+	    	    		});
+	    	    	}
+	    		}
+    		}
     	}
 
     }
@@ -555,7 +584,7 @@ public class Server implements RemoteServerInterface {
 
 	    					//if this message broadcastMessageEcho.get(i).echoServerReceived()>(n+f) / 2;
 	    					//and if this server is really delivered message
-	    					if(broadcastMessage.get(i).echoServerReceived()>((totalServerNumber+1)/2)) {
+	    					if(broadcastMessage.get(i).echoServerReceived()>((totalServerNumber+byzantineServerNumber)/2)) {
 	    						//TODO readyself
 	    						//readySelf(broadcastMessage.get(i), requestMessageEcho.get(broadcastMessage.get(i).getStringDigitalsign()));
 	    						System.out.println("enter else4 "+myServerName+"\n"+manager.getPublicKey());
@@ -623,29 +652,12 @@ public class Server implements RemoteServerInterface {
 	    						!broadcastMessage.get(i).serverReadied(s)){
 	    					broadcastMessage.get(i).readyServer(s);
 						}
-
-	    			// delivery in case >2f
-	    			if(broadcastMessage.get(i).readyServerReceived()>2&&
-	    					broadcastMessage.get(i).serverReadied(myServerName)) {
-	    				if(broadcastMessageDelivery.size()==0) {
-	    					broadcastMessageDelivery.add(decipheredMessage);
-	    					System.out.println("Primeira entrega no server: "+myServerName);
-	    					continue;
-	    				}
-	    				boolean exist=false;
-	    				for(Message bcmDelivery : broadcastMessageDelivery) {
-	    					if(bcmDelivery.getBcm().getStringDigitalsign().equals(broadcastMessage.get(i).getStringDigitalsign())) {
-	    						exist=true;
-	    					}
-	    				}
-	    				if(!exist) {
-	    					broadcastMessageDelivery.add(decipheredMessage);
-	    					System.out.println("Entregue no server: "+myServerName);
-	    				}
-
+	    			
+	    			
 	    			// broadcast ready in case >f
-	    			}else if(broadcastMessage.get(i).readyServerReceived()>1&&
-	    					!broadcastMessage.get(i).serverReadied(myServerName)) {
+	    			if(broadcastMessage.get(i).readyServerReceived()>byzantineServerNumber&&
+	    					!broadcastMessage.get(i).serverReadied(myServerName)&&
+	    					!broadcastMessage.get(i).serverDelivery(myServerName)) {
 	    				broadcastMessage.get(i).readyServer(myServerName);
 	    				BroadcastMessage tmp=new BroadcastMessage(bcm.getDigitalsign(), totalServerNumber);
 	    				tmp.readyServer(myServerName);
@@ -672,6 +684,27 @@ public class Server implements RemoteServerInterface {
 	    				}
 	    			}
 
+	    			// delivery in case >2f
+	    			if(broadcastMessage.get(i).readyServerReceived()>(2*byzantineServerNumber)&&
+	    					broadcastMessage.get(i).serverReadied(myServerName)&&
+	    					!broadcastMessage.get(i).serverDelivery(myServerName)) {
+	    				if(broadcastMessageDelivery.size()==0) {
+	    					broadcastMessageDelivery.add(decipheredMessage);
+	    					System.out.println("Primeira entrega no server: "+myServerName);
+	    				}
+	    				boolean exist=false;
+	    				for(Message bcmDelivery : broadcastMessageDelivery) {
+	    					if(bcmDelivery.getBcm().getStringDigitalsign().equals(broadcastMessage.get(i).getStringDigitalsign())) {
+	    						exist=true;
+	    					}
+	    				}
+	    				if(!exist) {
+	    					broadcastMessageDelivery.add(decipheredMessage);
+	    					System.out.println("Entregue no server: "+myServerName);
+	    				}
+	    				broadcastMessage.get(i).serverDelivery(myServerName);
+	    			}
+	    			
 	    		}
 
     	}
