@@ -227,8 +227,9 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
-        timeStampHistory.add(decipheredMessage.getTimestamp());
+        
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
+        timeStampHistory.add(decipheredMessage.getTimestamp());
 
 
         Message message = new Message(serverKeyPair.getPublic(), false, -1); //case the client does not exist
@@ -277,8 +278,9 @@ public class Server implements RemoteServerInterface {
 
 
         //Broadcast
-        timeStampHistory.add(decipheredMessage.getTimestamp());
+       
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
+        timeStampHistory.add(decipheredMessage.getTimestamp());
 
 
 
@@ -310,8 +312,9 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
-        timeStampHistory.add(decipheredMessage.getTimestamp());
+       
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
+        timeStampHistory.add(decipheredMessage.getTimestamp());
 
 
 
@@ -370,8 +373,9 @@ public class Server implements RemoteServerInterface {
         Message decipheredMessage = manager.decipherCipheredMessage(msg);
 
         //Broadcast
-        timeStampHistory.add(decipheredMessage.getTimestamp());
+        
         broadcastEcho(manager.getDigitalSign(msg), decipheredMessage);
+        timeStampHistory.add(decipheredMessage.getTimestamp());
 
 
 

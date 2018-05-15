@@ -3,21 +3,30 @@ package pt.ulisboa.tecnico.hdscoin.client;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.SocketTimeoutException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.UnmarshalException;
 import java.rmi.registry.LocateRegistry;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 import pt.ulisboa.tecnico.hdscoin.Crypto.CipheredMessage;
 import pt.ulisboa.tecnico.hdscoin.Crypto.CryptoManager;
@@ -25,10 +34,6 @@ import pt.ulisboa.tecnico.hdscoin.Crypto.Message;
 import pt.ulisboa.tecnico.hdscoin.interfaces.KeystoreManager;
 import pt.ulisboa.tecnico.hdscoin.interfaces.RemoteServerInterface;
 import pt.ulisboa.tecnico.hdscoin.interfaces.Transaction;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 
 
 public class    Client {
@@ -101,9 +106,7 @@ public class    Client {
     }
 
     public boolean register() {
-    	int registerValue=0;
-
-        for (int i = 0; i < numServers(); i++) {
+    	for (int i = 0; i < numServers(); i++) {
         	final int index=i;
         	service.execute(() -> {
             try {
@@ -302,13 +305,16 @@ public class    Client {
         CipheredMessage highestValCipher = readListCiphers.get(highestValKey);
         if(highestVal.getCheckedName().equals("")) return false;
         if(highestVal.getCheckedName().equals(clientName)) writeTimestamp = highestVal.getTimestamp();
-        Collection<Message> values = readList.values();
         final ConcurrentHashMap<String, Message> acklist = new ConcurrentHashMap<>();
         Message newMsg = null;
         try {
             newMsg = new Message(clientKeyPair.getPublic(), highestVal, highestVal.getSender(), checkedName.toString(), isAudit, manager.decipherIntegrityCheck(highestValCipher), highestValCipher.getIV());
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        if(test && testAttack==6) {
+	        System.out.println("Sending invalid update check from bizantine server to all servers:");
+	        System.out.println("timestamp sended:   " + highestVal.getTimestamp());
         }
         for (int i = 0; i < numServers(); i++) {
         	CipheredMessage newCipheredMessage;

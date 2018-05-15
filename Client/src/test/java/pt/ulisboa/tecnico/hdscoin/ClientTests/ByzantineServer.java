@@ -12,16 +12,6 @@ import org.junit.Test;
 import pt.ulisboa.tecnico.hdscoin.client.Client;
 import pt.ulisboa.tecnico.hdscoin.server.NoReplyServer;
 
-import static org.junit.Assert.assertTrue;
-
-import java.net.MalformedURLException;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-
-import org.junit.Test;
-
-import pt.ulisboa.tecnico.hdscoin.client.Client;
-
 public class ByzantineServer {
 
 	static Client alice;
