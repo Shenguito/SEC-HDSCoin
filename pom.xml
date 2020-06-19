@@ -27,7 +27,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <junit.version>4.12</junit.version>
-        <jackson.version>2.9.10</jackson.version>
+        <jackson.version>2.11.0</jackson.version>
         <jaxb.version>2.2.11</jaxb.version>
     </properties>
 
