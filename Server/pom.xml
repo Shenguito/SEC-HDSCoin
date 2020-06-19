@@ -4,10 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>SEC</groupId>
-    <artifactId>Server</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <parent>
+        <groupId>SEC</groupId>
+        <artifactId>SEC-HDSCoin</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
 
+    <artifactId>server</artifactId>
 
     <build>
         <resources>
@@ -21,7 +24,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-
                 <configuration>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
@@ -55,9 +57,8 @@
     <dependencies>
         <dependency>
             <groupId>SEC</groupId>
-            <artifactId>Library</artifactId>
+            <artifactId>library</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
-
 </project>
